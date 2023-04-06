@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { FirstPersonControls } from './resource/FirstPersonControls.js';
-import { OBJLoader } from './resource/OBJLoader.js';
-import { MTLLoader } from './resource/MTLLoader.js';
+import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 
 const KEYS = {
 	a: 65,
@@ -307,15 +307,16 @@ class GalerieApp {
 
 		//FLOOR
 		let floorGeo = new THREE.PlaneGeometry(1000, 1000);
+		floorGeo.rotateY(Math.PI)
 		let floorTexture = new THREE.TextureLoader().load(
 			'img/materials/grass_0.png'
 		);
 		floorTexture.wrapS = THREE.RepeatWrapping;
 		floorTexture.wrapT = THREE.RepeatWrapping;
 		floorTexture.repeat.set(512, 512);
-		let floorMat = new THREE.MeshPhongMaterial({
+		let floorMat = new THREE.MeshBasicMaterial({
 			map: floorTexture,
-			side: THREE.BackSide,
+			side: THREE.FrontSide,
 		});
 		let floorMesh = new THREE.Mesh(floorGeo, floorMat);
 		floorMesh.receiveShadow = true;
@@ -328,17 +329,22 @@ class GalerieApp {
 	}
 
 	loadModel_() {
+		const log_error = function(error){
+			console.error(error)
+		}
 		//Car
 		let mtlLoader = new MTLLoader();
 		mtlLoader.setMaterialOptions({
 			side: THREE.FrontSide,
 			ignoreZeroRGBs: true,
 		});
-		mtlLoader.load('./img/models/jeep.mtl', mat => {
+		mtlLoader.setPath('./img/models/')
+		mtlLoader.load('jeep.mtl', mat => {
 			mat.preload();
+			mat.materials.car_jeep_ren.color.setHex(0xffffff)
 			let objLoader = new OBJLoader();
 			objLoader.setMaterials(mat);
-			objLoader.load('./img/models/jeep.obj', obj => {
+			objLoader.setPath('./img/models/').load('jeep.obj', obj => {
 				obj.traverse(o => {
 					o.castShadow = true;
 					//o.receiveShadow = false;
@@ -347,25 +353,25 @@ class GalerieApp {
 				obj.scale.set(1.6, 1.6, 1.6);
 				obj.baseColor = 0xffffff;
 				this.scene.add(obj);
-			});
-		});
+			}, undefined, log_error);
+		}, undefined, log_error);
 
 		//House
-		mtlLoader.load('./img/models/house.mtl', mat => {
+		mtlLoader.load('house.mtl', mat => {
 			mat.preload();
 			let objLoader = new OBJLoader();
-			objLoader.setMaterials(mat);
-			objLoader.load('./img/models/house.obj', obj => {
+			objLoader = objLoader.setMaterials(mat);
+			objLoader.setPath('./img/models/').load('house.obj', obj => {
 				obj.traverse(o => {
 					o.castShadow = true;
 					//o.receiveShadow = false;
 				});
-				obj.position.set(-30, 0, -20);
+				obj.position.set(-30, 1, -20);
 				obj.scale.set(1.6, 1.6, 1.6);
 				obj.baseColor = 0xffffff;
 				this.scene.add(obj);
-			});
-		});
+			}, undefined, log_error);
+		}, undefined, log_error);
 	}
 
 	//Recursive UPDATE Loop

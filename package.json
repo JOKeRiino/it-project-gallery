@@ -1,0 +1,31 @@
+{
+  "name": "gallery-frontend",
+  "version": "1.0.0",
+  "description": "Front-End for the virtual Picture gallery",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JOKeRiino/it-project-gallery.git"
+  },
+  "keywords": [
+    "three",
+    "pictures",
+    "gallery",
+    "itproject"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/JOKeRiino/it-project-gallery/issues"
+  },
+  "homepage": "https://github.com/JOKeRiino/it-project-gallery#readme",
+  "dependencies": {
+    "three": "^0.151.3"
+  },
+  "devDependencies": {
+    "@types/three": "^0.150.1"
+  }
+}
