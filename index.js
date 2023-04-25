@@ -214,14 +214,23 @@ class FirstPersonCamera {
 }
 
 class Player {
-  constructor() {
+  constructor(game) {
     var socket = io();
+    this.game = game;
+
+    socket.on("players", function (data) {
+      console.log(data);
+      game.players = data;
+    });
   }
 }
 
 class GalerieApp {
   constructor() {
-    let player = new Player();
+    // Initialize local player
+    let player = new Player(this);
+    this.players = [];
+
     this.initializeRenderer_();
     this.initializeLights_();
     this.initializeScene_();
