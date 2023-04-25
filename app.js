@@ -40,4 +40,4 @@ setInterval(function () {
   }
 
   if (players.length > 0) io.emit("players", players);
-}, 400);
+}, 4000);

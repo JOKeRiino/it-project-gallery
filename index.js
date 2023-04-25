@@ -215,12 +215,16 @@ class FirstPersonCamera {
 
 class Player {
   constructor(game) {
-    var socket = io();
     this.game = game;
+    const socket = io.connect("http://localhost:3000");
+
+    socket.on("connect", function () {
+      console.log(socket.id);
+    });
 
     socket.on("players", function (data) {
       console.log(data);
-      game.players = data;
+      game.serverPlayers = data;
     });
   }
 }
@@ -229,7 +233,10 @@ class GalerieApp {
   constructor() {
     // Initialize local player
     let player = new Player(this);
-    this.players = [];
+
+    // Two seperate arrays to check wether the server sends new players or if players are missing
+    this.serverPlayers = [];
+    this.localPlayers = [];
 
     this.initializeRenderer_();
     this.initializeLights_();
