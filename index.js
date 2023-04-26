@@ -240,7 +240,7 @@ class LocalPlayer extends Player {
 }
 
 class RemotePlayer extends Player {
-	// Create Models for remote players
+  // Create Models for remote players
 }
 
 class GalerieApp {
