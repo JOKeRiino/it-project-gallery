@@ -29,7 +29,7 @@ setInterval(function () {
   let players = [];
 
   for (const [_, socket] of io.of("/").sockets) {
-    console.log(socket);
+    // console.log(socket);
     players.push({
       id: socket.id,
       x: socket.userData.x,

@@ -213,30 +213,43 @@ class FirstPersonCamera {
   }
 }
 
+// TODO Klassen LocalPlayer und RemotePlayer erstellen?
 class Player {
   constructor(game) {
     this.game = game;
+  }
+}
+
+class LocalPlayer extends Player {
+  constructor(game) {
+    super(game);
+
     const socket = io.connect("http://localhost:3000");
+    let localPlayer = this;
 
     socket.on("connect", function () {
       console.log(socket.id);
+      localPlayer.id = socket.id;
     });
 
     socket.on("players", function (data) {
-      console.log(data);
       game.serverPlayers = data;
     });
   }
 }
 
+class RemotePlayer extends Player {
+  // Create Models for remote players
+}
+
 class GalerieApp {
   constructor() {
     // Initialize local player
-    let player = new Player(this);
+    this.player = new LocalPlayer(this);
 
-    // Two seperate arrays to check wether the server sends new players or if players are missing
+    // Two seperate variables to check wether the server sends new players or if players are missing
     this.serverPlayers = [];
-    this.localPlayers = [];
+    this.localPlayers = {};
 
     this.initializeRenderer_();
     this.initializeLights_();
@@ -417,6 +430,35 @@ class GalerieApp {
     );
   }
 
+  updatePlayers() {
+    const game = this;
+    // console.log(this.serverPlayers);
+    // console.log(game.player);
+    this.serverPlayers.forEach(function (data) {
+      if (game.player.id == data.id) {
+        // console.log("we hit a local player");
+        // do ...
+      } else if (game.localPlayers.hasOwnProperty(data.id)) {
+        // Check if coordinates etc. have changed
+        const prevElem = game.localPlayers[data.id];
+        if (
+          data.x !== prevElem.x ||
+          data.y !== prevElem.y ||
+          data.z !== prevElem.z
+        ) {
+          // Update dictionary
+          game.localPlayers[data.id] = data;
+          console.log(`Player ${data.id} updated in local players`);
+        }
+        // console.log(data);
+      } else {
+        // If it's a new player
+        game.localPlayers[data.id] = data;
+        console.log(`Player ${data.id} added to local players`);
+      }
+    });
+  }
+
   //Recursive UPDATE Loop
   renderAnimationFrame_() {
     requestAnimationFrame((f) => {
@@ -427,6 +469,8 @@ class GalerieApp {
       this.step(f - this.previousRAF_);
       this.renderer.render(this.scene, this.camera);
       this.previousRAF_ = f;
+
+      this.updatePlayers();
       this.renderAnimationFrame_();
     });
   }
