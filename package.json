@@ -1,35 +1,36 @@
 {
-  "name": "gallery-frontend",
-  "version": "1.0.0",
-  "description": "Front-End for the virtual Picture gallery",
-  "main": "index.js",
-  "scripts": {
-    "start": "node app.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/JOKeRiino/it-project-gallery.git"
-  },
-  "keywords": [
-    "three",
-    "pictures",
-    "gallery",
-    "itproject"
-  ],
-  "author": "",
-  "license": "UNLICENSED",
-  "bugs": {
-    "url": "https://github.com/JOKeRiino/it-project-gallery/issues"
-  },
-  "homepage": "https://github.com/JOKeRiino/it-project-gallery#readme",
-  "dependencies": {
-    "es-module-shims": "^1.7.2",
-    "express": "^4.18.2",
-    "socket.io": "^4.6.1",
-    "socket.io-client": "^4.6.1",
-    "three": "^0.151.3"
-  },
-  "devDependencies": {
-    "@types/three": "^0.150.1"
-  }
+	"name": "gallery-frontend",
+	"version": "1.0.0",
+	"description": "Front-End for the virtual Picture gallery",
+	"main": "index.js",
+	"scripts": {
+		"dev": "nodemon app.js",
+		"start": "node app.js"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/JOKeRiino/it-project-gallery.git"
+	},
+	"keywords": [
+		"three",
+		"pictures",
+		"gallery",
+		"itproject"
+	],
+	"author": "",
+	"license": "UNLICENSED",
+	"bugs": {
+		"url": "https://github.com/JOKeRiino/it-project-gallery/issues"
+	},
+	"homepage": "https://github.com/JOKeRiino/it-project-gallery#readme",
+	"dependencies": {
+		"express": "^4.18.2",
+		"nodemon": "^2.0.22",
+		"socket.io": "^4.6.1",
+		"socket.io-client": "^4.6.1",
+		"three": "^0.151.3"
+	},
+	"devDependencies": {
+		"@types/three": "^0.150.1"
+	}
 }
