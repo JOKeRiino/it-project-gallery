@@ -187,15 +187,15 @@ export class NoiseGenerator {
 	getEdgeWallType(y, x, array) {
 		if (array[y][x - 1] === ' ') {
 			if (array[y - 1][x] === ' ') {
-				return 'tr'; //Bottom Left Corner
+				return 'tl'; //Bottom Left Corner
 			} else {
-				return 'br'; //Top Left Corner
+				return 'bl'; //Top Left Corner
 			}
 		} else if (array[y][x + 1] === ' ') {
 			if (array[y - 1][x] === ' ') {
-				return 'tl'; //Bottom Right Corner
+				return 'tr'; //Bottom Right Corner
 			} else {
-				return 'bl'; //Top Left Corner
+				return 'br'; //Top Left Corner
 			}
 		}
 	}

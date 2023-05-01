@@ -240,7 +240,7 @@ class LocalPlayer extends Player {
 }
 
 class RemotePlayer extends Player {
-  // Create Models for remote players
+	// Create Models for remote players
 }
 
 class GalerieApp {
@@ -251,17 +251,18 @@ class GalerieApp {
 		// Two seperate variables to check wether the server sends new players or if players are missing
 		this.serverPlayers = [];
 		this.localPlayers = {};
+		this.roomTiles = [];
 
 		this.initializeRenderer_();
 		this.initializeLights_();
 		this.initializeScene_();
-		this.loadModel_();
+		//this.loadModel_();
 		//this.createAndLoadImages_(10);
 		this.initializeFPSCamera_();
 
-		let nG = new NoiseGenerator(15, 19);
+		let nG = new NoiseGenerator(18, 34);
 		let grid = nG.generateNoise_();
-		console.log(grid);
+		this.generateRoom_(grid);
 
 		this.previousRAF_ = null;
 		this.renderAnimationFrame_();
@@ -336,17 +337,6 @@ class GalerieApp {
 				'sky_back.webp',
 			]);
 
-		//BOX
-		let boxGeo = new THREE.BoxGeometry(2, 4, 2);
-		let boxMat = new THREE.MeshPhongMaterial({
-			color: 0xffffff,
-		});
-
-		let boxMesh = new THREE.Mesh(boxGeo, boxMat);
-		boxMesh.castShadow = true;
-		boxMesh.position.set(0, boxMesh.geometry.parameters.height / 2, -10);
-		this.scene.add(boxMesh);
-
 		//FLOOR
 		let floorGeo = new THREE.PlaneGeometry(1000, 1000);
 		floorGeo.rotateY(Math.PI);
@@ -370,43 +360,177 @@ class GalerieApp {
 		this.objects = [];
 	}
 
-	loadModel_() {
-		const log_error = function (error) {
-			console.error(error);
-		};
-		//Car
-		let mtlLoader = new MTLLoader();
-		mtlLoader.setMaterialOptions({
-			side: THREE.FrontSide,
-			ignoreZeroRGBs: true,
-		});
-		mtlLoader.setPath('./img/models/');
-		mtlLoader.load(
-			'jeep.mtl',
-			mat => {
-				mat.preload();
-				mat.materials.car_jeep_ren.color.setHex(0xffffff);
-				let objLoader = new OBJLoader();
-				objLoader.setMaterials(mat);
-				objLoader.setPath('./img/models/').load(
-					'jeep.obj',
-					obj => {
-						obj.traverse(o => {
-							o.castShadow = true;
-							//o.receiveShadow = false;
-						});
-						obj.position.set(20, 0, 20);
-						obj.scale.set(1.6, 1.6, 1.6);
-						obj.baseColor = 0xffffff;
-						this.scene.add(obj);
-					},
-					undefined,
-					log_error
-				);
-			},
-			undefined,
-			log_error
+	generateRoom_(matrix) {
+		console.log(matrix);
+		const boxWidth = 5;
+		const boxHeight = 0.2;
+		const wallHeight = 10;
+		const wallDepth = 0.2;
+		const boxDepth = 5;
+
+		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
+		const edgeTypes = ['tr', 'tl', 'br', 'bl'];
+		const uTypes = ['tu', 'bu', 'lu', 'ru'];
+
+		for (let y = 0; y < matrix.length; y++) {
+			for (let x = 0; x < matrix.length; x++) {
+				if (matrix[y][x] === 'f') {
+					//All floor tiles
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+					const mesh = new THREE.Mesh(geometry, material);
+					mesh.position.x = x * boxWidth;
+					mesh.position.y = mesh.geometry.parameters.height / 2;
+					mesh.position.z = y * boxWidth;
+					this.scene.add(mesh);
+					this.roomTiles.push(mesh);
+				} else if (matrix[y][x] === 'P') {
+					//Pillar
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+					const mesh = new THREE.Mesh(geometry, material);
+					mesh.position.x = x * boxWidth;
+					mesh.position.y = mesh.geometry.parameters.height / 2;
+					mesh.position.z = y * boxWidth;
+					this.scene.add(mesh);
+				} else if (wallTypes.includes(matrix[y][x])) {
+					//Any 1 Wall
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+					const mesh = new THREE.Mesh(geometry, material);
+					mesh.position.x = 0;
+					mesh.position.y = mesh.geometry.parameters.height / 2;
+					mesh.position.z = 0;
+
+					const wallGeometry = new THREE.BoxGeometry(
+						boxWidth,
+						wallHeight,
+						wallDepth
+					);
+					const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+					wallMesh.position.x = 0;
+					wallMesh.position.y = wallMesh.geometry.parameters.height / 2;
+					wallMesh.position.z = 0 - boxWidth / 2;
+
+					const oneWallGroup = new THREE.Group();
+					oneWallGroup.add(mesh);
+					oneWallGroup.add(wallMesh);
+
+					if (matrix[y][x] === 'lw') {
+						const quaternion = new THREE.Quaternion();
+						quaternion.setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							Math.PI / 2
+						);
+						oneWallGroup.applyQuaternion(quaternion);
+					}
+
+					if (matrix[y][x] === 'rw') {
+						const quaternion = new THREE.Quaternion();
+						quaternion.setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI / 2
+						);
+						oneWallGroup.applyQuaternion(quaternion);
+					}
+
+					if (matrix[y][x] === 'bw') {
+						const quaternion = new THREE.Quaternion();
+						quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI);
+						oneWallGroup.applyQuaternion(quaternion);
+					}
+
+					oneWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
+
+					this.scene.add(oneWallGroup);
+					this.roomTiles.push(oneWallGroup);
+				} else if (edgeTypes.includes(matrix[y][x])) {
+					//Any 2 Wall 'Edge'
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
+					const mesh = new THREE.Mesh(geometry, material);
+					mesh.position.x = 0;
+					mesh.position.y = mesh.geometry.parameters.height / 2;
+					mesh.position.z = 0;
+
+					const wallGeometry = new THREE.BoxGeometry(
+						boxWidth,
+						wallHeight,
+						wallDepth
+					);
+					const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+					wallMesh.position.x = 0;
+					wallMesh.position.y = wallMesh.geometry.parameters.height / 2;
+					wallMesh.position.z = 0 - boxWidth / 2;
+
+					const wall2Geometry = new THREE.BoxGeometry(
+						wallDepth,
+						wallHeight,
+						boxWidth
+					);
+					const wall2Material = new THREE.MeshBasicMaterial({
+						color: 0x333333,
+					});
+					const wall2Mesh = new THREE.Mesh(wall2Geometry, wall2Material);
+					wall2Mesh.position.x = 0 - boxWidth / 2;
+					wall2Mesh.position.y = wall2Mesh.geometry.parameters.height / 2;
+					wall2Mesh.position.z = 0;
+
+					const twoWallGroup = new THREE.Group();
+					twoWallGroup.add(mesh);
+					twoWallGroup.add(wallMesh);
+					twoWallGroup.add(wall2Mesh);
+
+					if (matrix[y][x] === 'tr') {
+						const quaternion = new THREE.Quaternion();
+						quaternion.setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI / 2
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					if (matrix[y][x] === 'bl') {
+						const quaternion = new THREE.Quaternion();
+						quaternion.setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							Math.PI / 2
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					if (matrix[y][x] === 'br') {
+						const quaternion = new THREE.Quaternion();
+						quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					twoWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
+
+					this.scene.add(twoWallGroup);
+					this.roomTiles.push(twoWallGroup);
+				} else if (uTypes.includes(matrix[y][x])) {
+					//Any 3 Wall 'U'
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const material = new THREE.MeshBasicMaterial({ color: 0xaa00aa });
+					const mesh = new THREE.Mesh(geometry, material);
+					mesh.position.x = x * boxWidth;
+					mesh.position.y = mesh.geometry.parameters.height / 2;
+					mesh.position.z = y * boxWidth;
+					this.scene.add(mesh);
+				}
+			}
+		}
+
+		//set Player at the middle of the room!
+		this.fpsCamera.translation_ = new THREE.Vector3(
+			(matrix.length / 2) * 5,
+			80,
+			(matrix.length / 2) * 5
 		);
+		console.log(this.roomTiles);
 	}
 
 	async createAndLoadImages_(count) {
@@ -556,6 +680,45 @@ class GalerieApp {
 		};
 		script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
 		document.head.appendChild(script);
+	}
+
+	loadModel_() {
+		const log_error = function (error) {
+			console.error(error);
+		};
+		//Car
+		let mtlLoader = new MTLLoader();
+		mtlLoader.setMaterialOptions({
+			side: THREE.FrontSide,
+			ignoreZeroRGBs: true,
+		});
+		mtlLoader.setPath('./img/models/');
+		mtlLoader.load(
+			'jeep.mtl',
+			mat => {
+				mat.preload();
+				mat.materials.car_jeep_ren.color.setHex(0xffffff);
+				let objLoader = new OBJLoader();
+				objLoader.setMaterials(mat);
+				objLoader.setPath('./img/models/').load(
+					'jeep.obj',
+					obj => {
+						obj.traverse(o => {
+							o.castShadow = true;
+							//o.receiveShadow = false;
+						});
+						obj.position.set(20, 0, 20);
+						obj.scale.set(1.6, 1.6, 1.6);
+						obj.baseColor = 0xffffff;
+						this.scene.add(obj);
+					},
+					undefined,
+					log_error
+				);
+			},
+			undefined,
+			log_error
+		);
 	}
 }
 
