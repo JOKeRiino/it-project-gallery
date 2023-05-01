@@ -227,9 +227,10 @@ export class NoiseGenerator {
 			score += 1;
 		}
 
-		if (score === 8 && Math.random() > 0.5) {
-			return 'P';
-		}
+		//NO PILLARS FOR NOW!
+		// if (score === 8 && Math.random() > 0.5) {
+		// 	return 'P';
+		// }
 		return 'f';
 	}
 
