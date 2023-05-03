@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { NoiseGenerator } from './components/noiseGenerator.js';
@@ -10,6 +11,10 @@ const KEYS = {
 	w: 87,
 	d: 68,
 };
+
+const blocker = document.getElementById( 'blocker' );
+const instructions = document.getElementById( 'instructions' );
+let controls;
 
 function clamp(x, a, b) {
 	return Math.min(Math.max(x, a), b);
@@ -115,6 +120,7 @@ class InputController {
 		}
 	}
 }
+
 
 class FirstPersonCamera {
 	constructor(camera, objects) {
@@ -259,6 +265,7 @@ class GalerieApp {
 		//this.loadModel_();
 		//this.createAndLoadImages_(10);
 		this.initializeFPSCamera_();
+		this.initializePointerlock();
 
 		let nG = new NoiseGenerator(18, 34);
 		let grid = nG.generateNoise_();
@@ -299,6 +306,38 @@ class GalerieApp {
 
 	initializeFPSCamera_() {
 		this.fpsCamera = new FirstPersonCamera(this.camera, this.objects);
+	}
+
+	initializePointerlock() {
+		controls = new PointerLockControls( this.camera, document.body );
+
+		const blocker = document.getElementById( 'blocker' );
+		const instructions = document.getElementById( 'instructions' );
+
+		instructions.addEventListener( 'click', function () {
+
+				controls.lock();
+
+			} );
+
+		controls.addEventListener( 'lock', function () {
+
+			instructions.style.display = 'none';
+			blocker.style.display = 'none';
+			console.log("lock");
+
+		} );
+
+		controls.addEventListener( 'unlock', function () {
+
+			blocker.style.display = 'block';
+			instructions.style.display = '';
+			console.log("unlock");
+
+		} );
+
+		this.scene.add(controls.getObject());
+
 	}
 
 	//Add Lights to App
