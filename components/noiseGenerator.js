@@ -202,7 +202,7 @@ export class NoiseGenerator {
 
 	getPillarByChance(y, x, array) {
 		let score = 0;
-		if (array[y][x - 1] === 'f') {
+		if (array[y][x - 1] === 'f' || array[y][x - 1] === 'P') {
 			score += 1;
 		}
 		if (array[y][x + 1] === 'f') {
@@ -227,7 +227,7 @@ export class NoiseGenerator {
 			score += 1;
 		}
 
-		if (score === 8 && Math.random() > 0.5) {
+		if (score === 8) {
 			return 'P';
 		}
 		return 'f';

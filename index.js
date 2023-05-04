@@ -4,6 +4,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { NoiseGenerator } from './components/noiseGenerator.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const KEYS = {
 	a: 65,
@@ -11,6 +12,18 @@ const KEYS = {
 	w: 87,
 	d: 68,
 };
+
+function getImgDimensions(img, canvasSize) {
+	let w, h;
+	if (img.width > img.height) {
+		w = canvasSize;
+		h = canvasSize * (img.height / img.width);
+	} else {
+		h = canvasSize;
+		w = canvasSize * (img.width / img.height);
+	} 
+  return [w, h];
+}
 
 const blocker = document.getElementById( 'blocker' );
 const instructions = document.getElementById( 'instructions' );
@@ -68,13 +81,10 @@ class GalerieApp {
 		this.initializeRenderer_();
 		this.initializeLights_();
 		this.initializeScene_();
-		//this.loadModel_();
-		//this.createAndLoadImages_(10);
 		this.initializePointerlock();
 
-		let nG = new NoiseGenerator(18, 34);
-		let grid = nG.generateNoise_();
-		this.generateRoom_(grid);
+		//Create a World and Render it
+		this.initializeGallery_();
 
 		this.renderAnimationFrame_();
 		this._DEVSTATS_(); //Disable in FINAL BUILD
@@ -94,6 +104,18 @@ class GalerieApp {
 			0.1,
 			1000
 		);
+
+		//Configuring Loading Manager for Loading Screen
+		this.loadingManager = new THREE.LoadingManager();
+		let loader = document.getElementById('loader');
+		let loadingScreen = document.getElementById('loading-screen');
+		this.loadingManager.onProgress = (url, loaded, total) => {
+			loader.style.width = (loaded / total) * 100 + '%';
+		};
+		this.loadingManager.onLoad = () => {
+			loadingScreen.style.display = 'none';
+		};
+		this.gltfLoader = new GLTFLoader(this.loadingManager);
 
 		this.camera.position.set(2, 3, 0);
 		this.camera.lookAt(0, 0, -10);
@@ -252,181 +274,17 @@ class GalerieApp {
 		this.objects = [];
 	}
 
-	generateRoom_(matrix) {
-		console.log(matrix);
-		const boxWidth = 5;
-		const boxHeight = 0.2;
-		const wallHeight = 10;
-		const wallDepth = 0.2;
-		const boxDepth = 5;
+	async initializeGallery_() {
+		//Funktion generiert so lange Räume bis die Größe passt.
+		//Erst dann wird der Raum gerendert.
+		//So sollten wir das auf den Server packen und als JSON verschicken können.
+		this.score = 26;
+		this.imgCount = 0;
+		this.noiseGeneratorSize = 1;
 
-		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
-		const edgeTypes = ['tr', 'tl', 'br', 'bl'];
-		const uTypes = ['tu', 'bu', 'lu', 'ru'];
-
-		for (let y = 0; y < matrix.length; y++) {
-			for (let x = 0; x < matrix.length; x++) {
-				if (matrix[y][x] === 'f') {
-					//All floor tiles
-					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
-					const mesh = new THREE.Mesh(geometry, material);
-					mesh.position.x = x * boxWidth;
-					mesh.position.y = mesh.geometry.parameters.height / 2;
-					mesh.position.z = y * boxWidth;
-					this.scene.add(mesh);
-					this.roomTiles.push(mesh);
-				} else if (matrix[y][x] === 'P') {
-					//Pillar
-					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
-					const mesh = new THREE.Mesh(geometry, material);
-					mesh.position.x = x * boxWidth;
-					mesh.position.y = mesh.geometry.parameters.height / 2;
-					mesh.position.z = y * boxWidth;
-					this.scene.add(mesh);
-				} else if (wallTypes.includes(matrix[y][x])) {
-					//Any 1 Wall
-					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
-					const mesh = new THREE.Mesh(geometry, material);
-					mesh.position.x = 0;
-					mesh.position.y = mesh.geometry.parameters.height / 2;
-					mesh.position.z = 0;
-
-					const wallGeometry = new THREE.BoxGeometry(
-						boxWidth,
-						wallHeight,
-						wallDepth
-					);
-					const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
-					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
-					wallMesh.position.x = 0;
-					wallMesh.position.y = wallMesh.geometry.parameters.height / 2;
-					wallMesh.position.z = 0 - boxWidth / 2;
-
-					const oneWallGroup = new THREE.Group();
-					oneWallGroup.add(mesh);
-					oneWallGroup.add(wallMesh);
-
-					if (matrix[y][x] === 'lw') {
-						const quaternion = new THREE.Quaternion();
-						quaternion.setFromAxisAngle(
-							new THREE.Vector3(0, 1, 0),
-							Math.PI / 2
-						);
-						oneWallGroup.applyQuaternion(quaternion);
-					}
-
-					if (matrix[y][x] === 'rw') {
-						const quaternion = new THREE.Quaternion();
-						quaternion.setFromAxisAngle(
-							new THREE.Vector3(0, 1, 0),
-							-Math.PI / 2
-						);
-						oneWallGroup.applyQuaternion(quaternion);
-					}
-
-					if (matrix[y][x] === 'bw') {
-						const quaternion = new THREE.Quaternion();
-						quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI);
-						oneWallGroup.applyQuaternion(quaternion);
-					}
-
-					oneWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
-
-					this.scene.add(oneWallGroup);
-					this.roomTiles.push(oneWallGroup);
-				} else if (edgeTypes.includes(matrix[y][x])) {
-					//Any 2 Wall 'Edge'
-					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-					const material = new THREE.MeshBasicMaterial({ color: 0xaaaaaa });
-					const mesh = new THREE.Mesh(geometry, material);
-					mesh.position.x = 0;
-					mesh.position.y = mesh.geometry.parameters.height / 2;
-					mesh.position.z = 0;
-
-					const wallGeometry = new THREE.BoxGeometry(
-						boxWidth,
-						wallHeight,
-						wallDepth
-					);
-					const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
-					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
-					wallMesh.position.x = 0;
-					wallMesh.position.y = wallMesh.geometry.parameters.height / 2;
-					wallMesh.position.z = 0 - boxWidth / 2;
-
-					const wall2Geometry = new THREE.BoxGeometry(
-						wallDepth,
-						wallHeight,
-						boxWidth
-					);
-					const wall2Material = new THREE.MeshBasicMaterial({
-						color: 0x333333,
-					});
-					const wall2Mesh = new THREE.Mesh(wall2Geometry, wall2Material);
-					wall2Mesh.position.x = 0 - boxWidth / 2;
-					wall2Mesh.position.y = wall2Mesh.geometry.parameters.height / 2;
-					wall2Mesh.position.z = 0;
-
-					const twoWallGroup = new THREE.Group();
-					twoWallGroup.add(mesh);
-					twoWallGroup.add(wallMesh);
-					twoWallGroup.add(wall2Mesh);
-
-					if (matrix[y][x] === 'tr') {
-						const quaternion = new THREE.Quaternion();
-						quaternion.setFromAxisAngle(
-							new THREE.Vector3(0, 1, 0),
-							-Math.PI / 2
-						);
-						twoWallGroup.applyQuaternion(quaternion);
-					}
-
-					if (matrix[y][x] === 'bl') {
-						const quaternion = new THREE.Quaternion();
-						quaternion.setFromAxisAngle(
-							new THREE.Vector3(0, 1, 0),
-							Math.PI / 2
-						);
-						twoWallGroup.applyQuaternion(quaternion);
-					}
-
-					if (matrix[y][x] === 'br') {
-						const quaternion = new THREE.Quaternion();
-						quaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI);
-						twoWallGroup.applyQuaternion(quaternion);
-					}
-
-					twoWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
-
-					this.scene.add(twoWallGroup);
-					this.roomTiles.push(twoWallGroup);
-				} else if (uTypes.includes(matrix[y][x])) {
-					//Any 3 Wall 'U'
-					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-					const material = new THREE.MeshBasicMaterial({ color: 0xaa00aa });
-					const mesh = new THREE.Mesh(geometry, material);
-					mesh.position.x = x * boxWidth;
-					mesh.position.y = mesh.geometry.parameters.height / 2;
-					mesh.position.z = y * boxWidth;
-					this.scene.add(mesh);
-				}
-			}
-		}
-
-		//set Player at the middle of the room!
-		this.camera.position.set(
-			(matrix.length / 2) * 5,
-		3,
-		(matrix.length / 2) * 5);
-		console.log(this.roomTiles);
-	}
-
-	async createAndLoadImages_(count) {
+		//Make the API Call to unsplash for this.score amount of images.
 		const apiKey = 'sWgSDWNA9FkyrQ0TMq6jgVOFO-mBQcADR5DUCMVJNJw'; // Replace with your own API key
-		const apiUrl = `https://api.unsplash.com/photos/random?client_id=${apiKey}&count=${count}`;
+		const apiUrl = `https://api.unsplash.com/photos/random?client_id=${apiKey}&count=${this.score}`;
 
 		try {
 			const response = await fetch(apiUrl);
@@ -444,68 +302,443 @@ class GalerieApp {
 				};
 			});
 
-			const squares = []; // Array to hold the squares
-
-			const canvasSize = 5;
-			const radius = count;
-
-			for (let i = 0; i < images.length; i++) {
-				//Dimensions of the images for ThreeJS, biggest side is set to canvasSize
-				// [0] returns width, [1] returns height
-				const imgDimensions = ((img, canvasSize) => {
-					let w, h;
-					if (img.width > img.height) {
-						w = canvasSize;
-						h = canvasSize * (img.height / img.width);
-					} else {
-						h = canvasSize;
-						w = canvasSize * (img.width / img.height);
-					}
-
-					return [w, h];
-				})(images[i], canvasSize);
-
-				//Angles for positioning as a polygon
-				const angle = (i / count) * Math.PI * 2;
-				const position = new THREE.Vector3(
-					Math.cos(angle) * radius,
-					imgDimensions[1] / 2,
-					Math.sin(angle) * radius
-				); // Position of the square in 3D space
-
-				//Set size of canvas
-				const geometry = new THREE.BoxGeometry(
-					imgDimensions[0],
-					imgDimensions[1],
-					0
-				);
-
-				//Set URL Image as Canvas Material
-				const texLoader = new THREE.TextureLoader();
-				texLoader.crossOrigin = 'Anonymous';
-				let imgTexture = texLoader.load(images[i].url);
-				const material = new THREE.MeshBasicMaterial({
-					map: imgTexture,
-					side: THREE.FrontSide,
-				});
-
-				const square = new THREE.Mesh(geometry, material); // Square mesh
-				square.position.copy(position); // Set square position
-
-				// Calculate angle between square position and origin
-				const target = new THREE.Vector3(0, imgDimensions[1] / 2, 0);
-				square.lookAt(target);
-				//square.rotation.x = Math.PI; // Rotate square to stand up towards origin
-				squares.push(square); // Add square to array
+			//If API Call is successful, iteratively generate a room until the min. size is reached.
+			while (this.imgCount < this.score) {
+				this.roomTiles = [];
+				this.noiseGeneratorSize += 2;
+				let grid = new NoiseGenerator(
+					this.noiseGeneratorSize,
+					1 //Seed for Generation
+				).generateNoise_();
+				this.imgCount = this.generateRoom_(grid, images);
+				console.log(this.imgCount, this.roomTiles);
 			}
-
-			// Add all squares to a group
-			const group = new THREE.Group();
-			squares.forEach(square => group.add(square));
-			this.scene.add(group);
 		} catch (e) {
 			console.error(e);
 		}
+
+		this.roomTiles.forEach(r => {
+			this.scene.add(r);
+		});
+	}
+
+	generateRoom_(matrix, images) {
+		let imageSpacer = 0;
+		let imageCount = 0;
+
+		const boxWidth = 5;
+		const boxHeight = 0.2;
+		const wallHeight = 10;
+		const wallDepth = 0.2;
+		const boxDepth = 5;
+		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
+		const edgeTypes = ['tr', 'tl', 'br', 'bl'];
+		const uTypes = ['tu', 'bu', 'lu', 'ru'];
+
+		const texLoader = new THREE.TextureLoader();
+		texLoader.crossOrigin = 'Anonymous';
+
+		//Floor Texture + Mat
+		const floorTexture = new THREE.TextureLoader().load(
+			'/img/materials/carpet2.jpg'
+		);
+		const floorMaterial = new THREE.MeshBasicMaterial({
+			map: floorTexture,
+		});
+		//Wall Texture + Mat
+		const wallTexture = new THREE.TextureLoader().load(
+			'/img/materials/wall1.png'
+		);
+		const wallMaterial = new THREE.MeshBasicMaterial({
+			map: wallTexture,
+		});
+		//Gallery Wall Texture + Mat
+		const galleryWallTexture = new THREE.TextureLoader().load(
+			'/img/materials/gallerywall1.png'
+		);
+		const galleryWallMaterial = new THREE.MeshBasicMaterial({
+			map: galleryWallTexture,
+		});
+
+		for (let y = 0; y < matrix.length; y++) {
+			for (let x = 0; x < matrix.length; x++) {
+				if (matrix[y][x] === 'f') {
+					//All tiles that are just floor
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const mesh = new THREE.Mesh(geometry, floorMaterial);
+					mesh.position.set(
+						x * boxWidth,
+						mesh.geometry.parameters.height / 2,
+						y * boxWidth
+					);
+
+					//this.scene.add(mesh);
+					this.roomTiles.push(mesh);
+				} else if (matrix[y][x] === 'P') {
+					const oneWallGroup = new THREE.Group();
+					//Pillar
+					//Floor
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const mesh = new THREE.Mesh(geometry, floorMaterial);
+					mesh.position.set(0, mesh.geometry.parameters.height / 2, 0);
+					oneWallGroup.add(mesh);
+					//The concrete Wall
+					const wallGeometry = new THREE.BoxGeometry(
+						boxWidth,
+						wallHeight * 0.6,
+						wallDepth * 5
+					);
+					const wallMesh = new THREE.Mesh(wallGeometry, galleryWallMaterial);
+					wallMesh.position.set(
+						0,
+						wallMesh.geometry.parameters.height / 2,
+						0 - boxWidth / 2
+					);
+					oneWallGroup.add(wallMesh);
+					// Add one image to every side of the concrete wall!
+					//Image Canvas First Side
+					if (imageCount < images.length) {
+						const dims = getImgDimensions(images[imageCount], 4);
+						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
+						let imgTexture = texLoader.load(images[imageCount].url);
+						const canvasMaterial = new THREE.MeshBasicMaterial({
+							map: imgTexture,
+							side: THREE.FrontSide,
+						});
+						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						canvasMesh.position.set(
+							0,
+							wallMesh.geometry.parameters.height / 2 + 0.3,
+							0 - boxWidth / 2 + (wallDepth / 2 + 0.4)
+						);
+						oneWallGroup.add(canvasMesh);
+						imageCount++;
+					} else {
+						const canvasGeometry = new THREE.BoxGeometry(3, 3, 0.1);
+						let imgTexture = texLoader.load(
+							`/img/materials/ad${Math.random() > 0.5 ? '1' : '2'}.jpg`
+						);
+						const canvasMaterial = new THREE.MeshBasicMaterial({
+							map: imgTexture,
+							side: THREE.FrontSide,
+						});
+						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						canvasMesh.position.set(
+							0,
+							wallMesh.geometry.parameters.height / 2 + 0.3,
+							0 - boxWidth / 2 + (wallDepth / 2 + 0.4)
+						);
+						oneWallGroup.add(canvasMesh);
+					}
+
+					//Image Canvas Second Side
+					if (imageCount < images.length) {
+						const dims = getImgDimensions(images[imageCount], 4);
+						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
+						let imgTexture = texLoader.load(images[imageCount].url);
+						const canvasMaterial = new THREE.MeshBasicMaterial({
+							map: imgTexture,
+							side: THREE.FrontSide,
+						});
+						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						canvasMesh.position.set(
+							0,
+							wallMesh.geometry.parameters.height / 2 + 0.3,
+							0 - boxWidth / 2 - (wallDepth / 2 + 0.4)
+						);
+						oneWallGroup.add(canvasMesh);
+						imageCount++;
+					} else {
+						const canvasGeometry = new THREE.BoxGeometry(3, 3, 0.1);
+						let imgTexture = texLoader.load(
+							`/img/materials/ad${Math.random() > 0.5 ? '1' : '2'}.jpg`
+						);
+						const canvasMaterial = new THREE.MeshBasicMaterial({
+							map: imgTexture,
+							side: THREE.FrontSide,
+						});
+						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						canvasMesh.position.set(
+							0,
+							wallMesh.geometry.parameters.height / 2 + 0.3,
+							0 - boxWidth / 2 - (wallDepth / 2 + 0.4)
+						);
+						oneWallGroup.add(canvasMesh);
+					}
+
+					oneWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
+					//this.scene.add(oneWallGroup);
+					this.roomTiles.push(oneWallGroup);
+				} else if (wallTypes.includes(matrix[y][x])) {
+					const oneWallGroup = new THREE.Group();
+					//Any 1 Wall
+					//Ground
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const mesh = new THREE.Mesh(geometry, floorMaterial);
+					mesh.position.set(0, mesh.geometry.parameters.height / 2, 0);
+					oneWallGroup.add(mesh);
+					//Wall
+					const wallGeometry = new THREE.BoxGeometry(
+						boxWidth,
+						wallHeight,
+						wallDepth
+					);
+					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+					wallMesh.position.set(
+						0,
+						wallMesh.geometry.parameters.height / 2,
+						0 - boxWidth / 2
+					);
+					oneWallGroup.add(wallMesh);
+					//Image Canvas
+					if (imageSpacer % 2 === 0) {
+						if (imageCount < images.length) {
+							const dims = getImgDimensions(images[imageCount], 5);
+							const canvasGeometry = new THREE.BoxGeometry(
+								dims[0],
+								dims[1],
+								0.1
+							);
+							let imgTexture = texLoader.load(images[imageCount].url);
+							const canvasMaterial = new THREE.MeshBasicMaterial({
+								map: imgTexture,
+								side: THREE.FrontSide,
+							});
+							const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+							canvasMesh.position.set(
+								0,
+								wallMesh.geometry.parameters.height / 2,
+								0 - boxWidth / 2 + 0.205
+							);
+							oneWallGroup.add(canvasMesh);
+							imageCount++;
+						} else {
+							const canvasGeometry = new THREE.BoxGeometry(3, 3, 0.1);
+							let imgTexture = texLoader.load(
+								`/img/materials/ad${Math.random() > 0.5 ? '1' : '2'}.jpg`
+							);
+							const canvasMaterial = new THREE.MeshBasicMaterial({
+								map: imgTexture,
+								side: THREE.FrontSide,
+							});
+							const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+							canvasMesh.position.set(
+								0,
+								wallMesh.geometry.parameters.height / 2,
+								0 - boxWidth / 2 + 0.205
+							);
+							oneWallGroup.add(canvasMesh);
+						}
+					}
+
+					//ROTATION
+					if (matrix[y][x] === 'lw') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							Math.PI / 2
+						);
+						oneWallGroup.applyQuaternion(quaternion);
+					}
+					if (matrix[y][x] === 'rw') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI / 2
+						);
+						oneWallGroup.applyQuaternion(quaternion);
+					}
+					if (matrix[y][x] === 'bw') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI
+						);
+						oneWallGroup.applyQuaternion(quaternion);
+					}
+
+					oneWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
+					//this.scene.add(oneWallGroup);
+					this.roomTiles.push(oneWallGroup);
+				} else if (edgeTypes.includes(matrix[y][x])) {
+					const twoWallGroup = new THREE.Group();
+					//Any 2 Wall 'Edge'
+					//Ground
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const mesh = new THREE.Mesh(geometry, floorMaterial);
+					mesh.position.set(0, mesh.geometry.parameters.height / 2, 0);
+					twoWallGroup.add(mesh);
+					//Wall1
+					const wallGeometry = new THREE.BoxGeometry(
+						boxWidth,
+						wallHeight,
+						wallDepth
+					);
+					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+					wallMesh.position.set(
+						0,
+						wallMesh.geometry.parameters.height / 2,
+						0 - boxWidth / 2
+					);
+					const wall2Geometry = new THREE.BoxGeometry(
+						wallDepth,
+						wallHeight,
+						boxWidth
+					);
+					twoWallGroup.add(wallMesh);
+					//Wall2
+					const wall2Mesh = new THREE.Mesh(wall2Geometry, wallMaterial);
+					wall2Mesh.position.set(
+						0 - boxWidth / 2,
+						wall2Mesh.geometry.parameters.height / 2,
+						0
+					);
+					twoWallGroup.add(wall2Mesh);
+					//Random Plant
+					const random = Math.random();
+					if (random > 0.7) {
+						this.gltfLoader.load(
+							'img/models/plant.glb',
+							function (gltf) {
+								gltf.scene.scale.set(3, 3, 3);
+								gltf.scene.applyQuaternion(
+									new THREE.Quaternion().setFromAxisAngle(
+										new THREE.Vector3(0, 1, 0),
+										Math.PI * Math.random()
+									)
+								);
+								twoWallGroup.add(gltf.scene);
+							},
+							function (error) {}
+						);
+					} else if (random > 0.4) {
+						this.gltfLoader.load(
+							'img/models/chair.gltf',
+							function (gltf) {
+								gltf.scene.scale.set(3, 3, 3);
+								gltf.scene.applyQuaternion(
+									new THREE.Quaternion().setFromAxisAngle(
+										new THREE.Vector3(0, 1, 0),
+										2 * Math.PI
+									)
+								);
+								twoWallGroup.add(gltf.scene);
+							},
+							function (error) {}
+						);
+					}
+
+					//ROTATION
+					if (matrix[y][x] === 'tr') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI / 2
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+					if (matrix[y][x] === 'bl') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							Math.PI / 2
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+					if (matrix[y][x] === 'br') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					twoWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
+					//this.scene.add(twoWallGroup);
+					this.roomTiles.push(twoWallGroup);
+				} else if (uTypes.includes(matrix[y][x])) {
+					const twoWallGroup = new THREE.Group();
+					//Any 3 Wall 'U'
+					//Floor
+					const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+					const mesh = new THREE.Mesh(geometry, floorMaterial);
+					mesh.position.set(0, mesh.geometry.parameters.height / 2, 0);
+					twoWallGroup.add(mesh);
+					//Wall 1
+					const wallGeometry = new THREE.BoxGeometry(
+						boxWidth,
+						wallHeight,
+						wallDepth
+					);
+					const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+					wallMesh.position.set(
+						0,
+						wallMesh.geometry.parameters.height / 2,
+						0 - boxWidth / 2
+					);
+					twoWallGroup.add(wallMesh);
+					//Wall 2
+					const wall2Geometry = new THREE.BoxGeometry(
+						wallDepth,
+						wallHeight,
+						boxWidth
+					);
+					const wall2Mesh = new THREE.Mesh(wall2Geometry, wallMaterial);
+					wall2Mesh.position.set(
+						0 - boxWidth / 2,
+						wall2Mesh.geometry.parameters.height / 2,
+						0
+					);
+					twoWallGroup.add(wall2Mesh);
+					//Wall 3
+					const wall3Geometry = new THREE.BoxGeometry(
+						wallDepth,
+						wallHeight,
+						boxWidth
+					);
+					const wall3Mesh = new THREE.Mesh(wall3Geometry, wallMaterial);
+					wall3Mesh.position.set(
+						0 + boxWidth / 2,
+						wall2Mesh.geometry.parameters.height / 2,
+						0
+					);
+					twoWallGroup.add(wall3Mesh);
+					//ROTATION
+					if (matrix[y][x] === 'tu') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							Math.PI
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					if (matrix[y][x] === 'lu') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							-Math.PI / 2
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					if (matrix[y][x] === 'ru') {
+						const quaternion = new THREE.Quaternion().setFromAxisAngle(
+							new THREE.Vector3(0, 1, 0),
+							Math.PI / 2
+						);
+						twoWallGroup.applyQuaternion(quaternion);
+					}
+
+					twoWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
+					//this.scene.add(twoWallGroup);
+					this.roomTiles.push(twoWallGroup);
+				}
+				imageSpacer++;
+			}
+		}
+		//set Player at the middle of the room!
+		this.camera.position.set(
+			(matrix.length / 2) * 5,
+			3,
+			(matrix.length / 2) * 5
+		);
+		//console.log(this.roomTiles);
+		console.log('Image Count: ' + imageCount);
+		return imageCount;
 	}
 
 	updatePlayers() {
@@ -599,45 +832,6 @@ class GalerieApp {
 		};
 		script.src = 'https://mrdoob.github.io/stats.js/build/stats.min.js';
 		document.head.appendChild(script);
-	}
-
-	loadModel_() {
-		const log_error = function (error) {
-			console.error(error);
-		};
-		//Car
-		let mtlLoader = new MTLLoader();
-		mtlLoader.setMaterialOptions({
-			side: THREE.FrontSide,
-			ignoreZeroRGBs: true,
-		});
-		mtlLoader.setPath('./img/models/');
-		mtlLoader.load(
-			'jeep.mtl',
-			mat => {
-				mat.preload();
-				mat.materials.car_jeep_ren.color.setHex(0xffffff);
-				let objLoader = new OBJLoader();
-				objLoader.setMaterials(mat);
-				objLoader.setPath('./img/models/').load(
-					'jeep.obj',
-					obj => {
-						obj.traverse(o => {
-							o.castShadow = true;
-							//o.receiveShadow = false;
-						});
-						obj.position.set(20, 0, 20);
-						obj.scale.set(1.6, 1.6, 1.6);
-						obj.baseColor = 0xffffff;
-						this.scene.add(obj);
-					},
-					undefined,
-					log_error
-				);
-			},
-			undefined,
-			log_error
-		);
 	}
 }
 
