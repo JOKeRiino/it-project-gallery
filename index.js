@@ -387,7 +387,7 @@ class GalerieApp {
 		//Funktion generiert so lange Räume bis die Größe passt.
 		//Erst dann wird der Raum gerendert.
 		//So sollten wir das auf den Server packen und als JSON verschicken können.
-		this.score = 13;
+		this.score = 26;
 		this.imgCount = 0;
 		this.noiseGeneratorSize = 1;
 
@@ -842,7 +842,7 @@ class GalerieApp {
 		//set Player at the middle of the room!
 		this.fpsCamera.translation_ = new THREE.Vector3(
 			(matrix.length / 2) * 5,
-			3,
+			80,
 			(matrix.length / 2) * 5
 		);
 		//console.log(this.roomTiles);
