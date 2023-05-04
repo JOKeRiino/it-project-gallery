@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { NoiseGenerator } from './components/noiseGenerator.js';
@@ -12,10 +13,6 @@ const KEYS = {
 	d: 68,
 };
 
-function clamp(x, a, b) {
-	return Math.min(Math.max(x, a), b);
-}
-
 function getImgDimensions(img, canvasSize) {
 	let w, h;
 	if (img.width > img.height) {
@@ -24,209 +21,23 @@ function getImgDimensions(img, canvasSize) {
 	} else {
 		h = canvasSize;
 		w = canvasSize * (img.width / img.height);
-	}
-
-	return [w, h];
+	} 
+  return [w, h];
 }
 
-class InputController {
-	constructor(target) {
-		this.target_ = target || document;
-		this.initialize_();
-	}
+const blocker = document.getElementById( 'blocker' );
+const instructions = document.getElementById( 'instructions' );
+let controls;
+let moveForward = false;
+let moveBackward = false;
+let moveLeft = false;
+let moveRight = false;
+let canJump = false;
 
-	initialize_() {
-		this.current_ = {
-			leftButton: false,
-			rightButton: false,
-			mouseXDelta: 0,
-			mouseYDelta: 0,
-			mouseX: 0,
-			mouseY: 0,
-		};
-		this.previous_ = null;
-		this.keys_ = {};
-		this.previousKeys_ = {};
-		this.target_.addEventListener(
-			'mousedown',
-			e => this.onMouseDown_(e),
-			false
-		);
-		this.target_.addEventListener(
-			'mousemove',
-			e => this.onMouseMove_(e),
-			false
-		);
-		this.target_.addEventListener('mouseup', e => this.onMouseUp_(e), false);
-		this.target_.addEventListener('keydown', e => this.onKeyDown_(e), false);
-		this.target_.addEventListener('keyup', e => this.onKeyUp_(e), false);
-	}
-
-	onMouseMove_(e) {
-		this.current_.mouseX = e.pageX - window.innerWidth / 2;
-		this.current_.mouseY = e.pageY - window.innerHeight / 2;
-
-		if (this.previous_ === null) {
-			this.previous_ = { ...this.current_ };
-		}
-
-		this.current_.mouseXDelta = this.current_.mouseX - this.previous_.mouseX;
-		this.current_.mouseYDelta = this.current_.mouseY - this.previous_.mouseY;
-	}
-
-	onMouseDown_(e) {
-		this.onMouseMove_(e);
-
-		switch (e.button) {
-			case 0: {
-				this.current_.leftButton = true;
-				break;
-			}
-			case 2: {
-				this.current_.rightButton = true;
-				break;
-			}
-		}
-	}
-
-	onMouseUp_(e) {
-		this.onMouseMove_(e);
-
-		switch (e.button) {
-			case 0: {
-				this.current_.leftButton = false;
-				break;
-			}
-			case 2: {
-				this.current_.rightButton = false;
-				break;
-			}
-		}
-	}
-
-	onKeyDown_(e) {
-		this.keys_[e.keyCode] = true;
-	}
-
-	onKeyUp_(e) {
-		this.keys_[e.keyCode] = false;
-	}
-
-	key(keyCode) {
-		return !!this.keys_[keyCode];
-	}
-
-	isReady() {
-		return this.previous_ !== null;
-	}
-
-	update() {
-		if (this.previous_ !== null) {
-			this.current_.mouseXDelta = this.current_.mouseX - this.previous_.mouseX;
-			this.current_.mouseYDelta = this.current_.mouseY - this.previous_.mouseY;
-
-			this.previous_ = { ...this.current_ };
-		}
-	}
-}
-
-class FirstPersonCamera {
-	constructor(camera, objects) {
-		this.camera_ = camera;
-		this.input_ = new InputController();
-		this.rotation_ = new THREE.Quaternion();
-		this.translation_ = new THREE.Vector3(0, 2, 0);
-		this.phi_ = 0;
-		this.phiSpeed_ = 8;
-		this.theta_ = 0;
-		this.thetaSpeed_ = 5;
-		this.headBobActive_ = false;
-		this.headBobTimer_ = 0;
-		this.objects_ = objects;
-	}
-
-	update(timeElapsedS) {
-		this.updateRotation_(timeElapsedS);
-		this.updateCamera_(timeElapsedS);
-		this.updateTranslation_(timeElapsedS);
-		this.input_.update(timeElapsedS);
-	}
-
-	updateCamera_(_) {
-		this.camera_.quaternion.copy(this.rotation_);
-		this.camera_.position.copy(this.translation_);
-		this.camera_.position.y += Math.sin(this.headBobTimer_ * 10) * 1.5;
-
-		const forward = new THREE.Vector3(0, 0, -1);
-		forward.applyQuaternion(this.rotation_);
-
-		const dir = forward.clone();
-
-		forward.multiplyScalar(100);
-		forward.add(this.translation_);
-
-		let closest = forward;
-		const result = new THREE.Vector3();
-		const ray = new THREE.Ray(this.translation_, dir);
-		for (let i = 0; i < this.objects_.length; ++i) {
-			if (ray.intersectBox(this.objects_[i], result)) {
-				if (result.distanceTo(ray.origin) < closest.distanceTo(ray.origin)) {
-					closest = result.clone();
-				}
-			}
-		}
-
-		this.camera_.lookAt(closest);
-	}
-
-	updateTranslation_(timeElapsedS) {
-		const forwardVelocity =
-			(this.input_.key(KEYS.w) ? 1 : 0) + (this.input_.key(KEYS.s) ? -1 : 0);
-		const strafeVelocity =
-			(this.input_.key(KEYS.a) ? 1 : 0) + (this.input_.key(KEYS.d) ? -1 : 0);
-
-		const qx = new THREE.Quaternion();
-		qx.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.phi_);
-
-		const forward = new THREE.Vector3(0, 0, -1);
-		forward.applyQuaternion(qx);
-		forward.multiplyScalar(forwardVelocity * timeElapsedS * 10);
-
-		const left = new THREE.Vector3(-1, 0, 0);
-		left.applyQuaternion(qx);
-		left.multiplyScalar(strafeVelocity * timeElapsedS * 10);
-
-		this.translation_.add(forward);
-		this.translation_.add(left);
-
-		if (forwardVelocity != 0 || strafeVelocity != 0) {
-			this.headBobActive_ = true;
-		}
-	}
-
-	updateRotation_(timeElapsedS) {
-		const xh = this.input_.current_.mouseXDelta / window.innerWidth;
-		const yh = this.input_.current_.mouseYDelta / window.innerHeight;
-
-		this.phi_ += -xh * this.phiSpeed_;
-		this.theta_ = clamp(
-			this.theta_ + -yh * this.thetaSpeed_,
-			-Math.PI / 3,
-			Math.PI / 3
-		);
-
-		const qx = new THREE.Quaternion();
-		qx.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.phi_);
-		const qz = new THREE.Quaternion();
-		qz.setFromAxisAngle(new THREE.Vector3(1, 0, 0), this.theta_);
-
-		const q = new THREE.Quaternion();
-		q.multiply(qx);
-		q.multiply(qz);
-
-		this.rotation_.copy(q);
-	}
-}
+let prevTime = performance.now();
+const velocity = new THREE.Vector3();
+const direction = new THREE.Vector3();
+//const vertex = new THREE.Vector3(); evtl fuer kollision?
 
 // TODO Klassen LocalPlayer und RemotePlayer erstellen?
 class Player {
@@ -270,12 +81,11 @@ class GalerieApp {
 		this.initializeRenderer_();
 		this.initializeLights_();
 		this.initializeScene_();
-		this.initializeFPSCamera_();
+		this.initializePointerlock();
 
 		//Create a World and Render it
 		this.initializeGallery_();
 
-		this.previousRAF_ = null;
 		this.renderAnimationFrame_();
 		this._DEVSTATS_(); //Disable in FINAL BUILD
 	}
@@ -320,23 +130,104 @@ class GalerieApp {
 		});
 	}
 
-	initializeFPSCamera_() {
-		this.fpsCamera = new FirstPersonCamera(this.camera, this.objects);
+	initializePointerlock() {
+		controls = new PointerLockControls( this.camera, document.body );
+
+		const blocker = document.getElementById( 'blocker' );
+		const instructions = document.getElementById( 'instructions' );
+
+		instructions.addEventListener( 'click', function () {
+
+				controls.lock();
+
+			} );
+
+		controls.addEventListener( 'lock', function () {
+
+			instructions.style.display = 'none';
+			blocker.style.display = 'none';
+			console.log("lock");
+
+		} );
+
+		controls.addEventListener( 'unlock', function () {
+
+			blocker.style.display = 'block';
+			instructions.style.display = '';
+			console.log("unlock");
+
+		} );
+
+		this.scene.add(controls.getObject());
+
+		const onKeyDown = function ( event ) {
+
+			switch ( event.code ) {
+
+				case 'ArrowUp':
+				case 'KeyW':
+					moveForward = true;
+					break;
+
+				case 'ArrowLeft':
+				case 'KeyA':
+					moveLeft = true;
+					break;
+
+				case 'ArrowDown':
+				case 'KeyS':
+					moveBackward = true;
+					break;
+
+				case 'ArrowRight':
+				case 'KeyD':
+					moveRight = true;
+					break;
+
+				case 'Space':
+					if ( canJump === true ) velocity.y += 350;
+					canJump = false;
+					break;
+
+			}
+
+		};
+
+		const onKeyUp = function ( event ) {
+
+			switch ( event.code ) {
+
+				case 'ArrowUp':
+				case 'KeyW':
+					moveForward = false;
+					break;
+
+				case 'ArrowLeft':
+				case 'KeyA':
+					moveLeft = false;
+					break;
+
+				case 'ArrowDown':
+				case 'KeyS':
+					moveBackward = false;
+					break;
+
+				case 'ArrowRight':
+				case 'KeyD':
+					moveRight = false;
+					break;
+
+			}
+
+		};
+
+		document.addEventListener( 'keydown', onKeyDown );
+		document.addEventListener( 'keyup', onKeyUp );
+
 	}
 
 	//Add Lights to App
 	initializeLights_() {
-		// let pLight1 = new THREE.PointLight(0xffffff, 0.5);
-		// pLight1.position.set(15, 1, 15);
-		// pLight1.lookAt(20, 1, 20);
-		// this.scene.add(pLight1);
-
-		// // let dirLight = new THREE.DirectionalLight(0xffffff, 100);
-		// // dirLight.position.set(10, 10, 10);
-
-		// let light = new THREE.AmbientLight(0xffffff, 1);
-		// light.position.set(0, 4, 0);
-		// this.scene.add(light);
 		var hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
 		hemiLight.position.set(0, 300, 0);
 		this.scene.add(hemiLight);
@@ -840,9 +731,9 @@ class GalerieApp {
 			}
 		}
 		//set Player at the middle of the room!
-		this.fpsCamera.translation_ = new THREE.Vector3(
+		this.camera.position.set(
 			(matrix.length / 2) * 5,
-			80,
+			3,
 			(matrix.length / 2) * 5
 		);
 		//console.log(this.roomTiles);
@@ -882,22 +773,50 @@ class GalerieApp {
 	//Recursive UPDATE Loop
 	renderAnimationFrame_() {
 		requestAnimationFrame(f => {
-			if (this.previousRAF_ === null) {
-				this.previousRAF_ = f;
-			}
-
-			this.step(f - this.previousRAF_);
 			this.renderer.render(this.scene, this.camera);
-			this.previousRAF_ = f;
-
 			this.updatePlayers();
 			this.renderAnimationFrame_();
 		});
-	}
+		const time = performance.now();
 
-	step(timeElapsed) {
-		const timeElapsedS = timeElapsed * 0.001;
-		this.fpsCamera.update(timeElapsedS);
+				if ( controls.isLocked === true ) {
+
+					//raycaster.ray.origin.copy( controls.getObject().position );
+					//raycaster.ray.origin.y -= 10;
+
+					//const intersections = raycaster.intersectObjects( objects, false );
+
+					//const onObject = intersections.length > 0;
+
+					const delta = ( time - prevTime ) / 1000;
+
+					velocity.x -= velocity.x * 10.0 * delta;
+					velocity.z -= velocity.z * 10.0 * delta;
+
+					//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
+
+					direction.z = Number( moveForward ) - Number( moveBackward );
+					direction.x = Number( moveRight ) - Number( moveLeft );
+					direction.normalize(); // this ensures consistent movements in all directions
+
+					if ( moveForward || moveBackward ) velocity.z -= direction.z * 200.0 * delta;
+					if ( moveLeft || moveRight ) velocity.x -= direction.x * 200.0 * delta;
+
+					// if ( onObject === true ) {
+
+					// 	velocity.y = Math.max( 0, velocity.y );
+					// 	canJump = true;
+
+					// }
+
+					controls.moveRight( - velocity.x * delta );
+					controls.moveForward( - velocity.z * delta );
+
+				}
+
+				prevTime = time;
+
+
 	}
 
 	//FPS and RAM stats
