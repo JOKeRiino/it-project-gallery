@@ -17,7 +17,24 @@ io.on("connection", function (socket) {
   });
 
   socket.on("init", function (data) {
-    console.log(data);
+    console.log(`socket init ${socket.id}`);
+    socket.userData.model = data.model;
+    socket.userData.colour = data.colour;
+    socket.userData.x = data.x;
+    socket.userData.y = data.y;
+    socket.userData.z = data.z;
+    socket.userData.heading = data.h;
+    socket.userData.pb = data.pb;
+  });
+
+  socket.on("update", function (data) {
+    console.log(`socket update ${socket.id}`);
+    socket.userData.x = data.x;
+    socket.userData.y = data.y;
+    socket.userData.z = data.z;
+    socket.userData.heading = data.h;
+    socket.userData.pb = data.pb;
+    socket.userData.action = data.action;
   });
 });
 
@@ -32,10 +49,12 @@ setInterval(function () {
     // console.log(socket);
     players.push({
       id: socket.id,
+      // model: socket.userData.model,
       x: socket.userData.x,
       y: socket.userData.y,
       z: socket.userData.z,
       heading: socket.userData.heading,
+      pb: socket.userData.pb,
     });
   }
 

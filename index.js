@@ -221,20 +221,59 @@ class Player {
 }
 
 class LocalPlayer extends Player {
-  constructor(game) {
+  constructor(game, startingPosition) {
     super(game);
 
     const socket = io.connect("http://localhost:3000");
+    this.socket = socket;
     let localPlayer = this;
+
+    this.position = startingPosition.position;
+    this.rotation = startingPosition.rotation;
 
     socket.on("connect", function () {
       console.log(socket.id);
       localPlayer.id = socket.id;
+      localPlayer.initSocket();
     });
 
     socket.on("players", function (data) {
       game.serverPlayers = data;
     });
+  }
+
+  // TODO Add information about the player model like colour, character model,...
+  initSocket() {
+    console.log("PlayerLocal.initSocket");
+    this.socket.emit("init", {
+      // model: this.model,
+      // colour: this.colour,
+      x: this.position.x,
+      y: this.position.y,
+      z: this.position.z,
+      h: this.rotation.y,
+      pb: this.rotation.x,
+    });
+  }
+
+  updatePosition(camera) {
+    // console.log("Camera: ");
+    // console.log(camera);
+    this.position = camera.position;
+    this.rotation = camera.rotation;
+    this.updateSocket();
+  }
+
+  updateSocket() {
+    if (this.socket !== undefined) {
+      this.socket.emit("update", {
+        x: this.position.x,
+        y: this.position.y,
+        z: this.position.z,
+        h: this.rotation.y,
+        pb: this.rotation.x,
+      });
+    }
   }
 }
 
@@ -245,7 +284,11 @@ class RemotePlayer extends Player {
 class GalerieApp {
   constructor() {
     // Initialize local player
-    this.player = new LocalPlayer(this);
+    this.startingPosition = {
+      position: { x: 2, y: 3, z: 0 },
+      rotation: { x: 0, y: 0, z: -10 },
+    };
+    this.player = new LocalPlayer(this, this.startingPosition);
 
     // Two seperate variables to check wether the server sends new players or if players are missing
     this.serverPlayers = [];
@@ -444,7 +487,9 @@ class GalerieApp {
         if (
           data.x !== prevElem.x ||
           data.y !== prevElem.y ||
-          data.z !== prevElem.z
+          data.z !== prevElem.z ||
+          data.heading !== prevElem.heading ||
+          data.pb !== prevElem.pb
         ) {
           // Update dictionary
           game.localPlayers[data.id] = data;
@@ -472,6 +517,8 @@ class GalerieApp {
 
       this.updatePlayers();
       this.renderAnimationFrame_();
+      // Update player coordinates
+      this.player.updatePosition(this.camera);
     });
   }
 
