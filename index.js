@@ -83,10 +83,12 @@ class GalerieApp {
 		this.initializeScene_();
 		this.initializePointerlock();
 
+		this._DEVSTATS_();
 		//Create a World and Render it
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
-			this._DEVSTATS_();
+			let loadingScreen = document.getElementById('loading-screen');
+			loadingScreen.style.display = 'none'
 		});
 
 		//this.renderAnimationFrame_();
@@ -111,12 +113,8 @@ class GalerieApp {
 		//Configuring Loading Manager for Loading Screen
 		this.loadingManager = new THREE.LoadingManager();
 		let loader = document.getElementById('loader');
-		let loadingScreen = document.getElementById('loading-screen');
 		this.loadingManager.onProgress = (url, loaded, total) => {
 			loader.style.width = (loaded / total) * 100 + '%';
-		};
-		this.loadingManager.onLoad = () => {
-			loadingScreen.style.display = 'none';
 		};
 		this.gltfLoader = new GLTFLoader(this.loadingManager);
 
