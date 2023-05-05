@@ -320,8 +320,16 @@ class GalerieApp {
       1000
     );
 
-    this.camera.position.set(2, 3, 0);
-    this.camera.lookAt(0, 0, -10);
+    this.camera.position.set(
+      this.startingPosition.position.x,
+      this.startingPosition.position.y,
+      this.startingPosition.position.z
+    );
+    this.camera.lookAt(
+      this.startingPosition.rotation.x,
+      this.startingPosition.rotation.y,
+      this.startingPosition.rotation.z
+    );
 
     //EventListener to react to a change in window size.
     window.addEventListener("resize", () => {

@@ -28,7 +28,7 @@ io.on("connection", function (socket) {
   });
 
   socket.on("update", function (data) {
-    console.log(`socket update ${socket.id}`);
+    // console.log(`socket update ${socket.id}`);
     socket.userData.x = data.x;
     socket.userData.y = data.y;
     socket.userData.z = data.z;
