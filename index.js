@@ -302,16 +302,16 @@ class GalerieApp {
 			});
 
 			//If API Call is successful, iteratively generate a room until the min. size is reached.
-			while (this.imgCount < this.score) {
-				this.roomTiles = [];
+			let grid = null
+			do {
 				this.noiseGeneratorSize += 2;
-				let grid = new NoiseGenerator(
+				grid = new NoiseGenerator(
 					this.noiseGeneratorSize,
 					1 //Seed for Generation
 				).generateNoise_();
-				this.imgCount = await this.generateRoom_(grid, images);
-				console.log(this.imgCount, this.roomTiles);
-			}
+			} while(!this.checkRoomCapacity(grid,images.length))
+			this.imgCount = await this.generateRoom_(grid, images);
+			console.log(this.imgCount, this.roomTiles);
 		} catch (e) {
 			console.error(e);
 		}
@@ -319,6 +319,24 @@ class GalerieApp {
 		this.roomTiles.forEach(r => {
 			this.scene.add(r);
 		});
+	}
+
+	/**
+	 * Check if room is big enough for the number of images without actually rendering it
+	 * @param {string[][]} matrix
+	 * @param {number} min_cap
+	 */
+	checkRoomCapacity(matrix,min_cap){
+		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
+		let capacity = 0
+		for(let i=0;i<matrix.length;i++)
+		for(let j=0;j<matrix[0].length;j++){
+			if(matrix[i][j] == 'P')
+			capacity+=2
+			if(wallTypes.includes(matrix[i][j]))
+			capacity += 0.5
+		}
+		return Math.floor(capacity) > min_cap
 	}
 
 	/**
@@ -396,6 +414,7 @@ class GalerieApp {
 			floorMaterial,
 			numFloors
 		);
+		floorMesh.name = 'floor'
 		this.roomTiles.push(floorMesh);
 		let floorIndex = 0;
 		const placeFloor = (x, y) => {
@@ -419,6 +438,7 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
+		galleryWallMesh.name = 'galleryWall'
 		this.roomTiles.push(galleryWallMesh);
 		let galleryWallIndex = 0;
 		const placePillar = (x, y) => {
@@ -760,8 +780,8 @@ class GalerieApp {
 		//set Player at the middle of the room!
 		this.camera.position.set((matrix.length / 2) * 5, 3, (matrix.length / 2) * 5);
 		//console.log(this.roomTiles);
-		console.log('Image Count: ' + imageCount);
-		// correct chair count
+		console.log('Image Count: ' + imageCount, '/', images.length);
+		// correct chair / plant count
 		chairMesh.count = chairIndex;
 		plantMesh1.count = plantIndex;
 		plantMesh2.count = plantIndex;
