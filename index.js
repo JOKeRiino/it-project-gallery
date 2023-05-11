@@ -65,17 +65,47 @@ class RemotePlayer extends Player {
 		this.position.y = startingPosition.y;
 		this.position.z = startingPosition.z;
 
-		this.rotation.y = startingPosition.h;
-		this.rotation.x = startingPosition.pb;
+		this.rotation.y = startingPosition.ry;
+		this.rotation.x = startingPosition.rx;
+		this.rotation.z = startingPosition.rz;
+
 		//TODO Create character model with starting position
-		// create a black block
-		var geometry = new THREE.BoxGeometry(1, 1, 1); // adjust the dimensions as needed
-		var material = new THREE.MeshBasicMaterial({ color: 0x000000 }); // black color
+		// create a material with vertex coloring enabled
+		var material = new THREE.MeshBasicMaterial({ vertexColors: true });
+
+		// create a box geometry
+		var geometry = new THREE.BoxGeometry(1, 1, 1);
+
+		// get the position and color attributes of the geometry
+		var position = geometry.getAttribute('position');
+		var color = geometry.getAttribute('color');
+
+		// create an array to store the color data
+		var colors = [];
+
+		// loop through the vertices of the geometry
+		for (var i = 0; i < geometry.attributes.position.count; i++) {
+			// generate a random color for each vertex
+			var color = new THREE.Color(Math.random() * 0xffffff);
+
+			// push the color components to the array
+			colors.push(color.r, color.g, color.b);
+		}
+
+		// create a BufferAttribute object from the array
+		var colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
+
+		// add the color attribute to the geometry
+		geometry.setAttribute('color', colorAttribute);
+
 		this.block = new THREE.Mesh(geometry, material);
 		this.game.scene.add(this.block);
 
 		// set the initial position of the block
 		this.block.position.set(this.position.x, this.position.y, this.position.z);
+		this.block.rotation.x = startingPosition.rx;
+		this.block.rotation.y = startingPosition.ry;
+		this.block.rotation.z = startingPosition.rz;
 
 		console.log('New Remote Player created');
 	}
@@ -85,13 +115,26 @@ class RemotePlayer extends Player {
 		this.position.y = position.y;
 		this.position.z = position.z;
 
-		this.rotation.y = position.h;
-		this.rotation.x = position.pb;
+		this.rotation.y = position.ry;
+		this.rotation.x = position.rx;
+		this.rotation.z = position.rz;
 
 		// update the position of the block
-		// set the position of the block
 		this.block.position.set(position.x, position.y, position.z);
+		// update the rotation of the block
+		this.block.rotation.x = position.rx;
+		this.block.rotation.y = position.ry;
+		this.block.rotation.z = position.rz;
+
 		this.block.position.needsUpdate = true; // tell three.js to update the position
+	}
+
+	deletePlayer() {
+		this.game.scene.remove(this.block);
+		this.block.geometry.dispose(); // dispose its geometry
+		this.block.material.dispose(); // dispose its material
+		// this.block.texture.dispose(); // dispose its texture
+		this.block = undefined; // set it to undefined
 	}
 }
 
@@ -125,8 +168,9 @@ class LocalPlayer extends Player {
 			x: this.position.x,
 			y: this.position.y,
 			z: this.position.z,
-			h: this.rotation.y,
-			pb: this.rotation.x,
+			ry: this.rotation.y,
+			rx: this.rotation.x,
+			rz: this.rotation.z,
 		});
 	}
 
@@ -144,8 +188,9 @@ class LocalPlayer extends Player {
 				x: this.position.x,
 				y: this.position.y,
 				z: this.position.z,
-				h: this.rotation.y,
-				pb: this.rotation.x,
+				ry: this.rotation.y,
+				rx: this.rotation.x,
+				rz: this.rotation.z,
 			});
 		}
 	}
@@ -881,8 +926,18 @@ class GalerieApp {
 
 	updatePlayers() {
 		const game = this;
-		// console.log(this.serverPlayers);
-		// console.log(game.player);
+
+		const serverPlayersIds = game.serverPlayers.map(player => player.id);
+
+		// Check for deleted local players
+		Object.keys(game.localPlayers).forEach(function (playerId) {
+			if (!serverPlayersIds.includes(playerId)) {
+				game.localPlayers[playerId].deletePlayer();
+				delete game.localPlayers[playerId];
+				console.log(`Player ${playerId} deleted from local players`);
+			}
+		});
+
 		this.serverPlayers.forEach(function (data) {
 			if (game.player.id == data.id) {
 				// console.log("we hit a local player");
@@ -894,8 +949,9 @@ class GalerieApp {
 					data.x !== prevElem.position.x ||
 					data.y !== prevElem.position.y ||
 					data.z !== prevElem.position.z ||
-					data.h !== prevElem.rotation.y ||
-					data.pb !== prevElem.rotation.x
+					data.ry !== prevElem.rotation.y ||
+					data.rx !== prevElem.rotation.x ||
+					data.rz !== prevElem.rotation.z
 				) {
 					// Update dictionary
 					game.localPlayers[data.id].updatePosition(data);

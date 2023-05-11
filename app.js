@@ -9,7 +9,7 @@ app.get('/', function (req, res) {
 });
 
 io.on('connection', function (socket) {
-	socket.userData = { x: 0, y: 0, z: 0, heading: 0 }; //Default values;
+	socket.userData = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 }; //Default values;
 
 	console.log(`${socket.id} connected`);
 	socket.on('disconnect', function () {
@@ -18,13 +18,14 @@ io.on('connection', function (socket) {
 
 	socket.on('init', function (data) {
 		console.log(`socket init ${socket.id}`);
-		socket.userData.model = data.model;
-		socket.userData.colour = data.colour;
+		// socket.userData.model = data.model;
+		// socket.userData.colour = data.colour;
 		socket.userData.x = data.x;
 		socket.userData.y = data.y;
 		socket.userData.z = data.z;
-		socket.userData.heading = data.h;
-		socket.userData.pb = data.pb;
+		socket.userData.ry = data.ry;
+		socket.userData.rx = data.rx;
+		socket.userData.rz = data.rz;
 	});
 
 	socket.on('update', function (data) {
@@ -32,8 +33,9 @@ io.on('connection', function (socket) {
 		socket.userData.x = data.x;
 		socket.userData.y = data.y;
 		socket.userData.z = data.z;
-		socket.userData.heading = data.h;
-		socket.userData.pb = data.pb;
+		socket.userData.ry = data.ry;
+		socket.userData.rx = data.rx;
+		socket.userData.rz = data.rz;
 	});
 });
 
@@ -52,8 +54,9 @@ setInterval(function () {
 			x: socket.userData.x,
 			y: socket.userData.y,
 			z: socket.userData.z,
-			h: socket.userData.heading,
-			pb: socket.userData.pb,
+			ry: socket.userData.ry,
+			rx: socket.userData.rx,
+			rz: socket.userData.rz,
 		});
 	}
 
