@@ -198,6 +198,7 @@ class LocalPlayer extends Player {
 
 class GalerieApp {
 	constructor() {
+		// TODO: In the future we might have to change the z rotation
 		// Initialize local player
 		this.startingPosition = {
 			position: { x: 2, y: 3, z: 0 },
@@ -913,6 +914,7 @@ class GalerieApp {
 				imageSpacer++;
 			}
 		}
+		// TODO: in the future we might have to change the y axis to fit the model
 		//set Player at the middle of the room!
 		this.camera.position.set((matrix.length / 2) * 5, 3, (matrix.length / 2) * 5);
 		//console.log(this.roomTiles);
@@ -954,12 +956,14 @@ class GalerieApp {
 					data.rz !== prevElem.rotation.z
 				) {
 					// Update dictionary
+					console.log(data);
 					game.localPlayers[data.id].updatePosition(data);
 					console.log(`Player ${data.id} updated in local players`);
 				}
 				// console.log(data);
 			} else {
 				// If it's a new player
+				console.log(data);
 				game.localPlayers[data.id] = new RemotePlayer(game, data);
 				console.log(`Player ${data.id} added to local players`);
 			}
