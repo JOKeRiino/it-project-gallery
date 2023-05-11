@@ -16,26 +16,25 @@ io.on('connection', function (socket) {
 		console.log(`Player ${socket.id} disconnected`);
 	});
 
-  socket.on("init", function (data) {
-    console.log(`socket init ${socket.id}`);
-    socket.userData.model = data.model;
-    socket.userData.colour = data.colour;
-    socket.userData.x = data.x;
-    socket.userData.y = data.y;
-    socket.userData.z = data.z;
-    socket.userData.heading = data.h;
-    socket.userData.pb = data.pb;
-  });
+	socket.on('init', function (data) {
+		console.log(`socket init ${socket.id}`);
+		socket.userData.model = data.model;
+		socket.userData.colour = data.colour;
+		socket.userData.x = data.x;
+		socket.userData.y = data.y;
+		socket.userData.z = data.z;
+		socket.userData.heading = data.h;
+		socket.userData.pb = data.pb;
+	});
 
-  socket.on("update", function (data) {
-    // console.log(`socket update ${socket.id}`);
-    socket.userData.x = data.x;
-    socket.userData.y = data.y;
-    socket.userData.z = data.z;
-    socket.userData.heading = data.h;
-    socket.userData.pb = data.pb;
-  });
-
+	socket.on('update', function (data) {
+		// console.log(`socket update ${socket.id}`);
+		socket.userData.x = data.x;
+		socket.userData.y = data.y;
+		socket.userData.z = data.z;
+		socket.userData.heading = data.h;
+		socket.userData.pb = data.pb;
+	});
 });
 
 http.listen(3000, function () {
@@ -43,20 +42,20 @@ http.listen(3000, function () {
 });
 
 setInterval(function () {
-  let players = [];
+	let players = [];
 
-  for (const [_, socket] of io.of("/").sockets) {
-    // console.log(socket);
-    players.push({
-      id: socket.id,
-      // model: socket.userData.model,
-      x: socket.userData.x,
-      y: socket.userData.y,
-      z: socket.userData.z,
-      h: socket.userData.heading,
-      pb: socket.userData.pb,
-    });
-  }
+	for (const [_, socket] of io.of('/').sockets) {
+		// console.log(socket);
+		players.push({
+			id: socket.id,
+			// model: socket.userData.model,
+			x: socket.userData.x,
+			y: socket.userData.y,
+			z: socket.userData.z,
+			h: socket.userData.heading,
+			pb: socket.userData.pb,
+		});
+	}
 
-  if (players.length > 0) io.emit("players", players);
-}, 4000);
+	if (players.length > 0) io.emit('players', players);
+}, 40);
