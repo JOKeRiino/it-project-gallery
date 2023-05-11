@@ -41,112 +41,170 @@ const direction = new THREE.Vector3();
 
 // TODO Klassen LocalPlayer und RemotePlayer erstellen?
 class Player {
-  constructor(game) {
-    this.game = game;
-  }
+	constructor(game) {
+		this.game = game;
+	}
 }
 
 class RemotePlayer extends Player {
-  constructor(game, startingPosition) {
-    super(game);
+	constructor(game, startingPosition) {
+		super(game);
 
-    this.position = {
-      x: 0,
-      y: 0,
-      z: 0,
-    };
-    this.rotation = {
-      x: 0,
-      y: 0,
-      z: 0,
-    };
+		this.position = {
+			x: 0,
+			y: 0,
+			z: 0,
+		};
+		this.rotation = {
+			x: 0,
+			y: 0,
+			z: 0,
+		};
 
-    this.position.x = startingPosition.x;
-    this.position.y = startingPosition.y;
-    this.position.z = startingPosition.z;
+		this.position.x = startingPosition.x;
+		this.position.y = startingPosition.y;
+		this.position.z = startingPosition.z;
 
-    this.rotation.y = startingPosition.h;
-    this.rotation.x = startingPosition.pb;
-    //TODO Create character model with starting position
+		this.rotation.y = startingPosition.ry;
+		this.rotation.x = startingPosition.rx;
+		this.rotation.z = startingPosition.rz;
 
-    console.log("New Remote Player created");
-  }
+		//TODO Create character model with starting position
+		// create a material with vertex coloring enabled
+		var material = new THREE.MeshBasicMaterial({ vertexColors: true });
 
-  updatePosition(position) {
-    this.position.x = position.x;
-    this.position.y = position.y;
-    this.position.z = position.z;
+		// create a box geometry
+		var geometry = new THREE.BoxGeometry(1, 1, 1);
 
-    this.rotation.y = position.h;
-    this.rotation.x = position.pb;
-  }
+		// get the position and color attributes of the geometry
+		var position = geometry.getAttribute('position');
+		var color = geometry.getAttribute('color');
+
+		// create an array to store the color data
+		var colors = [];
+
+		// loop through the vertices of the geometry
+		for (var i = 0; i < geometry.attributes.position.count; i++) {
+			// generate a random color for each vertex
+			var color = new THREE.Color(Math.random() * 0xffffff);
+
+			// push the color components to the array
+			colors.push(color.r, color.g, color.b);
+		}
+
+		// create a BufferAttribute object from the array
+		var colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
+
+		// add the color attribute to the geometry
+		geometry.setAttribute('color', colorAttribute);
+
+		this.block = new THREE.Mesh(geometry, material);
+		this.game.scene.add(this.block);
+
+		// set the initial position of the block
+		this.block.position.set(this.position.x, this.position.y, this.position.z);
+		this.block.rotation.x = startingPosition.rx;
+		this.block.rotation.y = startingPosition.ry;
+		this.block.rotation.z = startingPosition.rz;
+
+		console.log('New Remote Player created');
+	}
+
+	updatePosition(position) {
+		this.position.x = position.x;
+		this.position.y = position.y;
+		this.position.z = position.z;
+
+		this.rotation.y = position.ry;
+		this.rotation.x = position.rx;
+		this.rotation.z = position.rz;
+
+		// update the position of the block
+		this.block.position.set(position.x, position.y, position.z);
+		// update the rotation of the block
+		this.block.rotation.x = position.rx;
+		this.block.rotation.y = position.ry;
+		this.block.rotation.z = position.rz;
+
+		this.block.position.needsUpdate = true; // tell three.js to update the position
+	}
+
+	deletePlayer() {
+		this.game.scene.remove(this.block);
+		this.block.geometry.dispose(); // dispose its geometry
+		this.block.material.dispose(); // dispose its material
+		// this.block.texture.dispose(); // dispose its texture
+		this.block = undefined; // set it to undefined
+	}
 }
 
 class LocalPlayer extends Player {
-  constructor(game, startingPosition) {
-    super(game);
+	constructor(game, startingPosition) {
+		super(game);
 
-    const socket = io.connect("http://localhost:3000");
-    this.socket = socket;
-    let localPlayer = this;
+		const socket = io.connect('http://localhost:3000');
+		this.socket = socket;
+		let localPlayer = this;
 
-    this.position = startingPosition.position;
-    this.rotation = startingPosition.rotation;
+		this.position = startingPosition.position;
+		this.rotation = startingPosition.rotation;
 
-    socket.on("connect", function () {
-      console.log(socket.id);
-      localPlayer.id = socket.id;
-      localPlayer.initSocket();
-    });
+		socket.on('connect', function () {
+			console.log(socket.id);
+			localPlayer.id = socket.id;
+			localPlayer.initSocket();
+		});
 
-    socket.on("players", function (data) {
-      game.serverPlayers = data;
-    });
-  }
+		socket.on('players', function (data) {
+			game.serverPlayers = data;
+		});
+	}
 
-  // TODO Add information about the player model like colour, character model,...
-  initSocket() {
-    console.log("PlayerLocal.initSocket");
-    this.socket.emit("init", {
-      // model: this.model,
-      // colour: this.colour,
-      x: this.position.x,
-      y: this.position.y,
-      z: this.position.z,
-      h: this.rotation.y,
-      pb: this.rotation.x,
-    });
-  }
+	// TODO Add information about the player model like colour, character model,...
+	initSocket() {
+		this.socket.emit('init', {
+			// model: this.model,
+			// colour: this.colour,
+			x: this.position.x,
+			y: this.position.y,
+			z: this.position.z,
+			ry: this.rotation.y,
+			rx: this.rotation.x,
+			rz: this.rotation.z,
+		});
+	}
 
-  updatePosition(camera) {
-    // console.log("Camera: ");
-    // console.log(camera);
-    this.position = camera.position;
-    this.rotation = camera.rotation;
-    this.updateSocket();
-  }
+	updatePosition(camera) {
+		// console.log("Camera: ");
+		// console.log(camera);
+		this.position = camera.position;
+		this.rotation = camera.rotation;
+		this.updateSocket();
+	}
 
-  updateSocket() {
-    if (this.socket !== undefined) {
-      this.socket.emit("update", {
-        x: this.position.x,
-        y: this.position.y,
-        z: this.position.z,
-        h: this.rotation.y,
-        pb: this.rotation.x,
-      });
-    }
-  }
+	updateSocket() {
+		if (this.socket !== undefined) {
+			this.socket.emit('update', {
+				x: this.position.x,
+				y: this.position.y,
+				z: this.position.z,
+				ry: this.rotation.y,
+				rx: this.rotation.x,
+				rz: this.rotation.z,
+			});
+		}
+	}
 }
 
 class GalerieApp {
-  constructor() {
-    // Initialize local player
-    this.startingPosition = {
-      position: { x: 2, y: 3, z: 0 },
-      rotation: { x: 0, y: 0, z: -10 },
-    };
-    this.player = new LocalPlayer(this, this.startingPosition);
+	constructor() {
+		// TODO: In the future we might have to change the z rotation
+		// Initialize local player
+		this.startingPosition = {
+			position: { x: 2, y: 3, z: 0 },
+			rotation: { x: 0, y: 0, z: -10 },
+		};
+		this.player = new LocalPlayer(this, this.startingPosition);
 
 		// Two seperate variables to check wether the server sends new players or if players are missing
 		this.serverPlayers = [];
@@ -163,7 +221,7 @@ class GalerieApp {
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
 			let loadingScreen = document.getElementById('loading-screen');
-			loadingScreen.style.display = 'none'
+			loadingScreen.style.display = 'none';
 		});
 
 		//this.renderAnimationFrame_();
@@ -193,16 +251,16 @@ class GalerieApp {
 		};
 		this.gltfLoader = new GLTFLoader(this.loadingManager);
 
-    this.camera.position.set(
-      this.startingPosition.position.x,
-      this.startingPosition.position.y,
-      this.startingPosition.position.z
-    );
-    this.camera.lookAt(
-      this.startingPosition.rotation.x,
-      this.startingPosition.rotation.y,
-      this.startingPosition.rotation.z
-    );
+		this.camera.position.set(
+			this.startingPosition.position.x,
+			this.startingPosition.position.y,
+			this.startingPosition.position.z
+		);
+		this.camera.lookAt(
+			this.startingPosition.rotation.x,
+			this.startingPosition.rotation.y,
+			this.startingPosition.rotation.z
+		);
 
 		//EventListener to react to a change in window size.
 		window.addEventListener('resize', () => {
@@ -383,14 +441,14 @@ class GalerieApp {
 			});
 
 			//If API Call is successful, iteratively generate a room until the min. size is reached.
-			let grid = null
+			let grid = null;
 			do {
 				this.noiseGeneratorSize += 2;
 				grid = new NoiseGenerator(
 					this.noiseGeneratorSize,
 					1 //Seed for Generation
 				).generateNoise_();
-			} while(!this.checkRoomCapacity(grid,images.length))
+			} while (!this.checkRoomCapacity(grid, images.length));
 			this.imgCount = await this.generateRoom_(grid, images);
 			console.log(this.imgCount, this.roomTiles);
 		} catch (e) {
@@ -407,17 +465,15 @@ class GalerieApp {
 	 * @param {string[][]} matrix
 	 * @param {number} min_cap
 	 */
-	checkRoomCapacity(matrix,min_cap){
+	checkRoomCapacity(matrix, min_cap) {
 		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
-		let capacity = 0
-		for(let i=0;i<matrix.length;i++)
-		for(let j=0;j<matrix[0].length;j++){
-			if(matrix[i][j] == 'P')
-			capacity+=2
-			if(wallTypes.includes(matrix[i][j]))
-			capacity += 0.5
-		}
-		return Math.floor(capacity) > min_cap
+		let capacity = 0;
+		for (let i = 0; i < matrix.length; i++)
+			for (let j = 0; j < matrix[0].length; j++) {
+				if (matrix[i][j] == 'P') capacity += 2;
+				if (wallTypes.includes(matrix[i][j])) capacity += 0.5;
+			}
+		return Math.floor(capacity) > min_cap;
 	}
 
 	/**
@@ -495,7 +551,7 @@ class GalerieApp {
 			floorMaterial,
 			numFloors
 		);
-		floorMesh.name = 'floor'
+		floorMesh.name = 'floor';
 		this.roomTiles.push(floorMesh);
 		let floorIndex = 0;
 		const placeFloor = (x, y) => {
@@ -519,7 +575,7 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
-		galleryWallMesh.name = 'galleryWall'
+		galleryWallMesh.name = 'galleryWall';
 		this.roomTiles.push(galleryWallMesh);
 		let galleryWallIndex = 0;
 		const placePillar = (x, y) => {
@@ -858,6 +914,7 @@ class GalerieApp {
 				imageSpacer++;
 			}
 		}
+		// TODO: in the future we might have to change the y axis to fit the model
 		//set Player at the middle of the room!
 		this.camera.position.set((matrix.length / 2) * 5, 3, (matrix.length / 2) * 5);
 		//console.log(this.roomTiles);
@@ -871,8 +928,18 @@ class GalerieApp {
 
 	updatePlayers() {
 		const game = this;
-		// console.log(this.serverPlayers);
-		// console.log(game.player);
+
+		const serverPlayersIds = game.serverPlayers.map(player => player.id);
+
+		// Check for deleted local players
+		Object.keys(game.localPlayers).forEach(function (playerId) {
+			if (!serverPlayersIds.includes(playerId)) {
+				game.localPlayers[playerId].deletePlayer();
+				delete game.localPlayers[playerId];
+				console.log(`Player ${playerId} deleted from local players`);
+			}
+		});
+
 		this.serverPlayers.forEach(function (data) {
 			if (game.player.id == data.id) {
 				// console.log("we hit a local player");
@@ -881,20 +948,23 @@ class GalerieApp {
 				// Check if coordinates etc. have changed
 				const prevElem = game.localPlayers[data.id];
 				if (
-          data.x !== prevElem.position.x ||
-          data.y !== prevElem.position.y ||
-          data.z !== prevElem.position.z ||
-          data.h !== prevElem.rotation.y ||
-          data.pb !== prevElem.rotation.x
+					data.x !== prevElem.position.x ||
+					data.y !== prevElem.position.y ||
+					data.z !== prevElem.position.z ||
+					data.ry !== prevElem.rotation.y ||
+					data.rx !== prevElem.rotation.x ||
+					data.rz !== prevElem.rotation.z
 				) {
 					// Update dictionary
-          game.localPlayers[data.id].updatePosition(data);
+					console.log(data);
+					game.localPlayers[data.id].updatePosition(data);
 					console.log(`Player ${data.id} updated in local players`);
 				}
 				// console.log(data);
 			} else {
 				// If it's a new player
-        game.localPlayers[data.id] = new RemotePlayer(game, data);
+				console.log(data);
+				game.localPlayers[data.id] = new RemotePlayer(game, data);
 				console.log(`Player ${data.id} added to local players`);
 			}
 		});
@@ -906,8 +976,8 @@ class GalerieApp {
 			this.renderer.render(this.scene, this.camera);
 			this.updatePlayers();
 			this.renderAnimationFrame_();
-      // Update player coordinates
-      this.player.updatePosition(this.camera);
+			// Update player coordinates
+			this.player.updatePosition(this.camera);
 		});
 		const time = performance.now();
 
