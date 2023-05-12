@@ -18,6 +18,7 @@ app.get('/', function (req, res) {
  * @property {number} rx current x rotation
  * @property {number} ry current y rotation
  * @property {number} rz current z rotation
+ * @property {number} velocity current movement speed
  * @  property {any?} model user chosen model
  * @  property {any?} colour skin color or similar
  */
@@ -42,6 +43,7 @@ io.on('connection', function (socket) {
 		socket.userData.ry = data.ry;
 		socket.userData.rx = data.rx;
 		socket.userData.rz = data.rz;
+		socket.userData.velocity = data.velocity;
 	});
 
 	socket.on('update', function (data) {
@@ -52,6 +54,7 @@ io.on('connection', function (socket) {
 		socket.userData.ry = data.ry;
 		socket.userData.rx = data.rx;
 		socket.userData.rz = data.rz;
+		socket.userData.velocity = data.velocity;
 
 		socket.changed = true;
 	});
@@ -71,6 +74,7 @@ io.on('connection', function (socket) {
 				ry: socket.userData.ry,
 				rx: socket.userData.rx,
 				rz: socket.userData.rz,
+				velocity: socket.userData.velocity
 			});
 		}
 
@@ -97,6 +101,7 @@ setInterval(function () {
 				ry: socket.userData.ry,
 				rx: socket.userData.rx,
 				rz: socket.userData.rz,
+				velocity: socket.userData.velocity,
 			});
 			socket.changed = false;
 		}

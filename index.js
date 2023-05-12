@@ -3,6 +3,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { NoiseGenerator } from './components/noiseGenerator.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { io, Socket } from 'socket.io-client';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 const KEYS = {
 	a: 65,
@@ -47,9 +48,12 @@ class Player {
 	rotation;
 	/**@type {GalerieApp} */
 	game;
+	/**@type {FBXLoader} */
+	loader;
 	/**@param {GalerieApp} game */
 	constructor(game) {
 		this.game = game;
+		this.loader = new FBXLoader(game.loadingManager);
 	}
 }
 
@@ -68,43 +72,47 @@ class RemotePlayer extends Player {
 		this.rotation.x = startingPosition.rx;
 		this.rotation.z = startingPosition.rz;
 
-		//TODO Create character model with starting position
-		// create a material with vertex coloring enabled
-		var material = new THREE.MeshBasicMaterial({ vertexColors: true });
+		/**@type{Object.<string,THREE.AnimationAction>} */
+		this.availableAnimations = {
+			WALKING: null,
+			IDLE: null,
+		};
 
-		// create a box geometry
-		var geometry = new THREE.BoxGeometry(1, 1, 1);
+		//Create character model with starting position
 
-		// get the position and color attributes of the geometry
-		var position = geometry.getAttribute('position');
-		var color = geometry.getAttribute('color');
-
-		// create an array to store the color data
-		var colors = [];
-
-		// loop through the vertices of the geometry
-		for (var i = 0; i < geometry.attributes.position.count; i++) {
-			// generate a random color for each vertex
-			var color = new THREE.Color(Math.random() * 0xffffff);
-
-			// push the color components to the array
-			colors.push(color.r, color.g, color.b);
-		}
-
-		// create a BufferAttribute object from the array
-		var colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
-
-		// add the color attribute to the geometry
-		geometry.setAttribute('color', colorAttribute);
-
-		this.block = new THREE.Mesh(geometry, material);
-		this.game.scene.add(this.block);
-
-		// set the initial position of the block
-		this.block.position.set(this.position.x, this.position.y, this.position.z);
-		this.block.rotation.x = startingPosition.rx;
-		this.block.rotation.y = startingPosition.ry;
-		this.block.rotation.z = startingPosition.rz;
+		// load xbot model
+		this.loader.load('img/models/xbot.fbx', model => {
+			this.anims = new THREE.AnimationMixer(model);
+			this.loader.load('img/models/animations/idle.fbx', data => {
+				this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
+				this.availableAnimations.IDLE.setEffectiveWeight(1);
+				this.availableAnimations.IDLE.play();
+			});
+			this.loader.load('img/models/animations/Standard Walk.fbx', data => {
+				this.availableAnimations.WALKING = this.anims.clipAction(
+					data.animations[0]
+				);
+				this.availableAnimations.WALKING.setEffectiveWeight(0);
+				this.availableAnimations.WALKING.play();
+			});
+			model.traverse(o => {
+				if (o.isMesh) {
+					o.castShadow = true;
+					o.receiveShadow = true;
+				}
+			});
+			model.scale.set(0.02, 0.02, 0.02);
+			// mixamo model is rotated inverse to the camera view
+			model.rotateY(Math.PI);
+			this.model = new THREE.Group();
+			this.model.add(model);
+			//this.model = model;
+			this.game.scene.add(this.model);
+			this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
+			this.model.rotation.x = startingPosition.rx;
+			this.model.rotation.y = startingPosition.ry;
+			this.model.rotation.z = startingPosition.rz;
+		});
 
 		console.log('New Remote Player created');
 	}
@@ -118,22 +126,38 @@ class RemotePlayer extends Player {
 		this.rotation.x = position.rx;
 		this.rotation.z = position.rz;
 
-		// update the position of the block
-		this.block.position.set(position.x, position.y, position.z);
-		// update the rotation of the block
-		this.block.rotation.x = position.rx;
-		this.block.rotation.y = position.ry;
-		this.block.rotation.z = position.rz;
+		this.velocity = position.velocity;
 
-		this.block.position.needsUpdate = true; // tell three.js to update the position
+		if (this.model) {
+			// update the position of the block
+			this.model.position.set(position.x, 0.2, position.z); // position.y
+			// update the rotation of the block
+			this.model.rotation.x = position.rx;
+			this.model.rotation.y = position.ry;
+			this.model.rotation.z = position.rz;
+
+			if (this.velocity > 0.5) {
+				this.availableAnimations.WALKING?.setEffectiveWeight(2);
+				this.availableAnimations.IDLE?.setEffectiveWeight(0);
+			} else if (this.velocity < 0.001) {
+				this.availableAnimations.WALKING?.setEffectiveWeight(0);
+				this.availableAnimations.IDLE?.setEffectiveWeight(1);
+			} else {
+				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity*2);
+				this.availableAnimations.IDLE?.setEffectiveWeight(1 / this.velocity);
+			}
+			console.log(this.velocity);
+
+			this.model.position.needsUpdate = true; // tell three.js to update the position
+		}
 	}
 
 	deletePlayer() {
-		this.game.scene.remove(this.block);
-		this.block.geometry.dispose(); // dispose its geometry
-		this.block.material.dispose(); // dispose its material
-		// this.block.texture.dispose(); // dispose its texture
-		this.block = undefined; // set it to undefined
+		if (this.model) {
+			this.game.scene.remove(this.model);
+			// this.block.texture.dispose(); // dispose its texture
+			this.model = undefined; // set it to undefined
+		}
 	}
 }
 
@@ -142,6 +166,7 @@ class LocalPlayer extends Player {
 	socket;
 	/**
 	 * @param {GalerieApp} game
+	 * @param {{position:THREE.Vector3,rotation:THREE.Vector3}} startingPosition
 	 */
 	constructor(game, startingPosition) {
 		super(game);
@@ -180,12 +205,11 @@ class LocalPlayer extends Player {
 			}
 		);
 
-		socket.on('leave',(id)=>{
-			console.debug('player disconnected:',id)
-			const index = game.serverPlayers.findIndex(p=>p.id===id)
-			if(index > -1)
-			game.serverPlayers.splice(index,1)
-		})
+		socket.on('leave', id => {
+			console.debug('player disconnected:', id);
+			const index = game.serverPlayers.findIndex(p => p.id === id);
+			if (index > -1) game.serverPlayers.splice(index, 1);
+		});
 	}
 
 	// TODO Add information about the player model like colour, character model,...
@@ -200,20 +224,22 @@ class LocalPlayer extends Player {
 			ry: this.rotation.y,
 			rx: this.rotation.x,
 			rz: this.rotation.z,
+			velocity: this.velocity,
 		});
 		this.socket.emit('players');
 	}
 
 	/**@param {THREE.Camera} camera */
-	updatePosition(camera) {
+	updatePosition(camera, velocity) {
 		// console.log("Camera: ");
 		// console.log(camera);
+		this.velocity = velocity;
 		if (
 			!camera.position.equals(this.position) ||
 			!this.rotation.equals(camera.rotation)
 		) {
 			this.position.copy(camera.position);
-			this.rotation.copy(camera.rotation)
+			this.rotation.copy(camera.rotation);
 			this.updateSocket();
 		}
 	}
@@ -227,6 +253,7 @@ class LocalPlayer extends Player {
 				ry: this.rotation.y,
 				rx: this.rotation.x,
 				rz: this.rotation.z,
+				velocity: this.velocity,
 			});
 		}
 	}
@@ -258,7 +285,7 @@ class GalerieApp {
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
 			setInterval(() => {
-				this.player.updatePosition(this.camera);
+				this.player.updatePosition(this.camera, velocity.length() / 4.3);
 			}, 40);
 			let loadingScreen = document.getElementById('loading-screen');
 			loadingScreen.style.display = 'none';
@@ -592,6 +619,7 @@ class GalerieApp {
 			numFloors
 		);
 		floorMesh.name = 'floor';
+		floorMesh.receiveShadow = true;
 		this.roomTiles.push(floorMesh);
 		let floorIndex = 0;
 		const placeFloor = (x, y) => {
@@ -974,6 +1002,7 @@ class GalerieApp {
 	 * @property {number} rx current x rotation
 	 * @property {number} ry current y rotation
 	 * @property {number} rz current z rotation
+	 * @property {number} velocity current movement speed
 	 * @  property {any?} model user chosen model
 	 * @  property {any?} colour skin color or similar
 	 */
@@ -1026,12 +1055,16 @@ class GalerieApp {
 
 	//Recursive UPDATE Loop
 	renderAnimationFrame_() {
+		const time = performance.now();
+		const delta = (time - prevTime) / 1000;
 		requestAnimationFrame(f => {
 			this.renderer.render(this.scene, this.camera);
 			this.updatePlayers();
+			Object.values(this.localPlayers).forEach(p => {
+				p.anims?.update(delta);
+			});
 			this.renderAnimationFrame_();
 		});
-		const time = performance.now();
 
 		if (controls.isLocked === true) {
 			//raycaster.ray.origin.copy( controls.getObject().position );
@@ -1040,8 +1073,6 @@ class GalerieApp {
 			//const intersections = raycaster.intersectObjects( objects, false );
 
 			//const onObject = intersections.length > 0;
-
-			const delta = (time - prevTime) / 1000;
 
 			velocity.x -= velocity.x * 10.0 * delta;
 			velocity.z -= velocity.z * 10.0 * delta;
@@ -1052,8 +1083,8 @@ class GalerieApp {
 			direction.x = Number(moveRight) - Number(moveLeft);
 			direction.normalize(); // this ensures consistent movements in all directions
 
-			if (moveForward || moveBackward) velocity.z -= direction.z * 200.0 * delta;
-			if (moveLeft || moveRight) velocity.x -= direction.x * 200.0 * delta;
+			if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
+			if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
 
 			// if ( onObject === true ) {
 
