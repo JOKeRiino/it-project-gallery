@@ -71,7 +71,7 @@ class RemotePlayer extends Player {
 
 		//TODO Create character model with starting position
 		// create a material with vertex coloring enabled
-		var material = new THREE.MeshBasicMaterial({ vertexColors: true });
+		var material = new THREE.MeshPhongMaterial({ vertexColors: true,shininess:0 });
 
 		// create a box geometry
 		var geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -99,6 +99,8 @@ class RemotePlayer extends Player {
 		geometry.setAttribute('color', colorAttribute);
 
 		this.block = new THREE.Mesh(geometry, material);
+		this.block.castShadow = true
+		this.block.receiveShadow = true
 		this.game.scene.add(this.block);
 
 		// set the initial position of the block
@@ -232,6 +234,7 @@ class GalerieApp {
 	initializeRenderer_() {
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
+		this.renderer.setPixelRatio(window.devicePixelRatio);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
 
@@ -357,11 +360,22 @@ class GalerieApp {
 	initializeLights_() {
 		var hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
 		hemiLight.position.set(0, 300, 0);
+		hemiLight.castShadow = true;
 		this.scene.add(hemiLight);
 
 		var dirLight = new THREE.DirectionalLight(0xffffff);
-		dirLight.position.set(75, 300, -75);
-		this.scene.add(dirLight);
+		dirLight.position.set(10, 50, 10);
+		dirLight.castShadow = true;
+		// debug shadows
+		dirLight.shadow.camera.visible = true;
+		// dirLight.shadow.camera.near = 100
+		// dirLight.shadow.camera.far = 250
+		// dirLight.shadow.camera.left = dirLight.shadow.camera.bottom = -10
+		// dirLight.shadow.camera.right = dirLight.shadow.camera.top = 10
+		this.scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
+		//dirLight.lookAt(37,0.2,37)
+		dirLight.target.position.set(37, 0.2, 37);
+		this.scene.add(dirLight, dirLight.target);
 	}
 
 	//Creating the Scene
@@ -502,23 +516,80 @@ class GalerieApp {
 		const floorTexture = new THREE.TextureLoader().load(
 			'/img/materials/carpet2.jpg'
 		);
-		const floorMaterial = new THREE.MeshBasicMaterial({
+		const floorMaterial = new THREE.MeshPhongMaterial({
 			map: floorTexture,
+			side: THREE.FrontSide,
+			shadowSide: THREE.FrontSide,
+			shininess: 0,
 		});
 		//Wall Texture + Mat
 		const wallTexture = new THREE.TextureLoader().load(
 			'/img/materials/wall1.png'
 		);
-		const wallMaterial = new THREE.MeshBasicMaterial({
+		const wallMaterial = new THREE.MeshPhongMaterial({
 			map: wallTexture,
+			side: THREE.FrontSide,
+			shadowSide: THREE.FrontSide,
+			shininess: 0,
 		});
 		//Gallery Wall Texture + Mat
 		const galleryWallTexture = new THREE.TextureLoader().load(
 			'/img/materials/gallerywall1.png'
 		);
-		const galleryWallMaterial = new THREE.MeshBasicMaterial({
+		const galleryWallMaterial = new THREE.MeshPhongMaterial({
 			map: galleryWallTexture,
+			side: THREE.FrontSide,
+			shadowSide: THREE.FrontSide,
+			shininess: 0,
 		});
+
+		//canvas textures
+		const canvas_ao = new THREE.TextureLoader().load(
+			'img/materials/fabric_135-1K/fabric_135_ambientocculsion-1K.png'
+		);
+		canvas_ao.wrapS = THREE.RepeatWrapping;
+		canvas_ao.wrapT = THREE.RepeatWrapping;
+		canvas_ao.repeat.set(12, 12);
+		// const canvas_height = new THREE.TextureLoader().load('img/materials/fabric_135-1K/fabric_135_height-1K.png')
+		// canvas_height.wrapS = THREE.RepeatWrapping;
+		// canvas_height.wrapT = THREE.RepeatWrapping;
+		// canvas_height.repeat.set(10, 10);
+		const canvas_normals = new THREE.TextureLoader().load(
+			'img/materials/fabric_135-1K/fabric_135_normal-1K.png'
+		);
+		canvas_normals.wrapS = THREE.RepeatWrapping;
+		canvas_normals.wrapT = THREE.RepeatWrapping;
+		canvas_normals.repeat.set(12, 12);
+		const canvas_roughness = new THREE.TextureLoader().load(
+			'img/materials/fabric_135-1K/fabric_135_roughness-1K.png'
+		);
+		canvas_roughness.wrapS = THREE.RepeatWrapping;
+		canvas_roughness.wrapT = THREE.RepeatWrapping;
+		canvas_roughness.repeat.set(12, 12);
+		const canvas_material = new THREE.MeshStandardMaterial({
+			aoMap: canvas_ao,
+			aoMapIntensity: 0.3,
+			normalMap: canvas_normals,
+			roughnessMap: canvas_roughness,
+			side: THREE.FrontSide,
+			shadowSide: THREE.FrontSide,
+			shininess: 0,
+			color: 'white',
+		});
+		const canvas_sides = new THREE.MeshStandardMaterial({
+			aoMap: canvas_ao.clone(),
+			aoMapIntensity: 0.3,
+			normalMap: canvas_normals.clone(),
+			roughnessMap: canvas_roughness.clone(),
+			side: THREE.FrontSide,
+			shadowSide: THREE.FrontSide,
+			shininess: 0,
+			color: 'white',
+		});
+		canvas_sides.aoMap.repeat.set(1, 12);
+		canvas_sides.aoMap.wrapS = THREE.ClampToEdgeWrapping;
+		canvas_sides.normalMap.repeat.set(1, 12);
+		canvas_sides.roughnessMap.repeat.set(1, 12);
 
 		// count number of floors etc. needed to create instanced meshes
 		let numFloors = 0;
@@ -575,6 +646,7 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
+		galleryWallMesh.receiveShadow = true;
 		galleryWallMesh.name = 'galleryWall';
 		this.roomTiles.push(galleryWallMesh);
 		let galleryWallIndex = 0;
@@ -599,6 +671,8 @@ class GalerieApp {
 			numEdges
 		);
 		chairMesh.name = 'chair';
+		chairMesh.receiveShadow = true;
+		chairMesh.castShadow = true;
 
 		const placeChair = (x, y, edgeType) => {
 			let mat = new THREE.Matrix4();
@@ -652,6 +726,10 @@ class GalerieApp {
 		);
 		plantMesh1.name = 'plant_1';
 		plantMesh2.name = 'plant_2';
+		plantMesh1.castShadow = true;
+		plantMesh2.castShadow = true;
+		plantMesh1.receiveShadow = true;
+		plantMesh2.receiveShadow = true;
 
 		const placePlant = (x, y) => {
 			let mat = new THREE.Matrix4();
@@ -679,6 +757,7 @@ class GalerieApp {
 			numOuterWalls
 		);
 		wallMesh.name = 'outerWall';
+		wallMesh.receiveShadow = true;
 		this.roomTiles.push(wallMesh);
 		let outerWallIndex = 0;
 		/**@param{'t'|'b'|'l'|'r'} wallPos */
@@ -740,11 +819,17 @@ class GalerieApp {
 						const dims = getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = texLoader.load(images[imageCount].url);
-						const canvasMaterial = new THREE.MeshBasicMaterial({
-							map: imgTexture,
-							side: THREE.FrontSide,
-						});
-						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						const canvasMaterial = canvas_material.clone();
+						canvasMaterial.map = imgTexture;
+						const canvasMesh = new THREE.Mesh(canvasGeometry, [
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvasMaterial,
+							canvas_material,
+						]);
+						canvasMesh.receiveShadow = true;
 						canvasMesh.position.set(
 							0,
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
@@ -757,16 +842,22 @@ class GalerieApp {
 						let imgTexture = texLoader.load(
 							`/img/materials/ad${Math.random() > 0.5 ? '1' : '2'}.jpg`
 						);
-						const canvasMaterial = new THREE.MeshBasicMaterial({
-							map: imgTexture,
-							side: THREE.FrontSide,
-						});
-						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						const canvasMaterial = canvas_material.clone();
+						canvasMaterial.map = imgTexture;
+						const canvasMesh = new THREE.Mesh(canvasGeometry, [
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvasMaterial,
+							canvas_material,
+						]);
 						canvasMesh.position.set(
 							0,
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - boxWidth / 2 + (wallDepth / 2 + 0.4)
 						);
+						canvasMesh.receiveShadow = true;
 						oneWallGroup.add(canvasMesh);
 					}
 
@@ -775,16 +866,22 @@ class GalerieApp {
 						const dims = getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = texLoader.load(images[imageCount].url);
-						const canvasMaterial = new THREE.MeshBasicMaterial({
-							map: imgTexture,
-							side: THREE.FrontSide,
-						});
-						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						const canvasMaterial = canvas_material.clone();
+						canvasMaterial.map = imgTexture;
+						const canvasMesh = new THREE.Mesh(canvasGeometry, [
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvas_material,
+							canvasMaterial,
+						]);
 						canvasMesh.position.set(
 							0,
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - boxWidth / 2 - (wallDepth / 2 + 0.4)
 						);
+						canvasMesh.receiveShadow = true;
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					} else {
@@ -792,16 +889,22 @@ class GalerieApp {
 						let imgTexture = texLoader.load(
 							`/img/materials/ad${Math.random() > 0.5 ? '1' : '2'}.jpg`
 						);
-						const canvasMaterial = new THREE.MeshBasicMaterial({
-							map: imgTexture,
-							side: THREE.FrontSide,
-						});
-						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						const canvasMaterial = canvas_material.clone();
+						canvasMaterial.map = imgTexture;
+						const canvasMesh = new THREE.Mesh(canvasGeometry, [
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvas_sides,
+							canvas_material,
+							canvasMaterial,
+						]);
 						canvasMesh.position.set(
 							0,
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - boxWidth / 2 - (wallDepth / 2 + 0.4)
 						);
+						canvasMesh.receiveShadow = true;
 						oneWallGroup.add(canvasMesh);
 					}
 
@@ -821,16 +924,22 @@ class GalerieApp {
 							const dims = getImgDimensions(images[imageCount], 5);
 							const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 							let imgTexture = texLoader.load(images[imageCount].url);
-							const canvasMaterial = new THREE.MeshBasicMaterial({
-								map: imgTexture,
-								side: THREE.FrontSide,
-							});
-							const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+							const canvasMaterial = canvas_material.clone();
+							canvasMaterial.map = imgTexture;
+							const canvasMesh = new THREE.Mesh(canvasGeometry, [
+								canvas_sides,
+								canvas_sides,
+								canvas_sides,
+								canvas_sides,
+								canvasMaterial,
+								canvas_material,
+							]);
 							canvasMesh.position.set(
 								0,
 								wallMesh.geometry.parameters.height / 2,
 								0 - boxWidth / 2 + 0.205
 							);
+							canvasMesh.receiveShadow = true;
 							oneWallGroup.add(canvasMesh);
 							imageCount++;
 						} else {
@@ -838,16 +947,22 @@ class GalerieApp {
 							let imgTexture = texLoader.load(
 								`/img/materials/ad${Math.random() > 0.5 ? '1' : '2'}.jpg`
 							);
-							const canvasMaterial = new THREE.MeshBasicMaterial({
-								map: imgTexture,
-								side: THREE.FrontSide,
-							});
-							const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+							const canvasMaterial = canvas_material.clone();
+							canvasMaterial.map = imgTexture;
+							const canvasMesh = new THREE.Mesh(canvasGeometry, [
+								canvas_sides,
+								canvas_sides,
+								canvas_sides,
+								canvas_sides,
+								canvasMaterial,
+								canvas_material,
+							]);
 							canvasMesh.position.set(
 								0,
 								wallMesh.geometry.parameters.height / 2,
 								0 - boxWidth / 2 + 0.205
 							);
+							canvasMesh.receiveShadow = true;
 							oneWallGroup.add(canvasMesh);
 						}
 					}
