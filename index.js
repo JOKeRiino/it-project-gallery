@@ -1,10 +1,8 @@
 import * as THREE from 'three';
-import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { NoiseGenerator } from './components/noiseGenerator.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { io, Socket } from 'socket.io-client';
 
 const KEYS = {
 	a: 65,
@@ -27,6 +25,7 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
+/**@type {PointerLockControls} */
 let controls;
 let moveForward = false;
 let moveBackward = false;
@@ -41,6 +40,14 @@ const direction = new THREE.Vector3();
 
 // TODO Klassen LocalPlayer und RemotePlayer erstellen?
 class Player {
+	id = '';
+	/**@type {THREE.Vector3} */
+	position;
+	/**@type {THREE.Vector3} */
+	rotation;
+	/**@type {GalerieApp} */
+	game;
+	/**@param {GalerieApp} game */
 	constructor(game) {
 		this.game = game;
 	}
@@ -50,16 +57,8 @@ class RemotePlayer extends Player {
 	constructor(game, startingPosition) {
 		super(game);
 
-		this.position = {
-			x: 0,
-			y: 0,
-			z: 0,
-		};
-		this.rotation = {
-			x: 0,
-			y: 0,
-			z: 0,
-		};
+		this.position = new THREE.Vector3();
+		this.rotation = new THREE.Vector3();
 
 		this.position.x = startingPosition.x;
 		this.position.y = startingPosition.y;
@@ -139,15 +138,20 @@ class RemotePlayer extends Player {
 }
 
 class LocalPlayer extends Player {
+	/**@type {Socket} */
+	socket;
+	/**
+	 * @param {GalerieApp} game
+	 */
 	constructor(game, startingPosition) {
 		super(game);
 
-		const socket = io.connect('http://localhost:3000');
+		const socket = io(document.URL);
 		this.socket = socket;
 		let localPlayer = this;
 
-		this.position = startingPosition.position;
-		this.rotation = startingPosition.rotation;
+		this.position = startingPosition.position.clone();
+		this.rotation = startingPosition.rotation.clone();
 
 		socket.on('connect', function () {
 			console.log(socket.id);
@@ -155,13 +159,38 @@ class LocalPlayer extends Player {
 			localPlayer.initSocket();
 		});
 
-		socket.on('players', function (data) {
-			game.serverPlayers = data;
-		});
+		socket.on(
+			'players',
+			/**@param {Array<userData>} data */ function (data) {
+				game.serverPlayers = data;
+			}
+		);
+
+		socket.on(
+			'update',
+			/**@param {Array<userData>} data */ data => {
+				data.forEach(d => {
+					const playerIndex = game.serverPlayers.findIndex(v => v.id === d.id);
+					if (playerIndex > -1) {
+						game.serverPlayers[playerIndex] = d;
+					} else {
+						game.serverPlayers.push(d);
+					}
+				});
+			}
+		);
+
+		socket.on('leave',(id)=>{
+			console.debug('player disconnected:',id)
+			const index = game.serverPlayers.findIndex(p=>p.id===id)
+			if(index > -1)
+			game.serverPlayers.splice(index,1)
+		})
 	}
 
 	// TODO Add information about the player model like colour, character model,...
 	initSocket() {
+		console.log('PlayerLocal.initSocket');
 		this.socket.emit('init', {
 			// model: this.model,
 			// colour: this.colour,
@@ -172,14 +201,21 @@ class LocalPlayer extends Player {
 			rx: this.rotation.x,
 			rz: this.rotation.z,
 		});
+		this.socket.emit('players');
 	}
 
+	/**@param {THREE.Camera} camera */
 	updatePosition(camera) {
 		// console.log("Camera: ");
 		// console.log(camera);
-		this.position = camera.position;
-		this.rotation = camera.rotation;
-		this.updateSocket();
+		if (
+			!camera.position.equals(this.position) ||
+			!this.rotation.equals(camera.rotation)
+		) {
+			this.position.copy(camera.position);
+			this.rotation.copy(camera.rotation)
+			this.updateSocket();
+		}
 	}
 
 	updateSocket() {
@@ -201,13 +237,14 @@ class GalerieApp {
 		// TODO: In the future we might have to change the z rotation
 		// Initialize local player
 		this.startingPosition = {
-			position: { x: 2, y: 3, z: 0 },
-			rotation: { x: 0, y: 0, z: -10 },
+			position: new THREE.Vector3(2, 3, 0),
+			rotation: new THREE.Vector3(0, 0, -10),
 		};
 		this.player = new LocalPlayer(this, this.startingPosition);
 
 		// Two seperate variables to check wether the server sends new players or if players are missing
 		this.serverPlayers = [];
+		/**@type {Object.<string,RemotePlayer>} */
 		this.localPlayers = {};
 		this.roomTiles = [];
 
@@ -220,6 +257,9 @@ class GalerieApp {
 		//Create a World and Render it
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
+			setInterval(() => {
+				this.player.updatePosition(this.camera);
+			}, 40);
 			let loadingScreen = document.getElementById('loading-screen');
 			loadingScreen.style.display = 'none';
 		});
@@ -926,6 +966,18 @@ class GalerieApp {
 		return imageCount;
 	}
 
+	/**
+	 * @typedef userData
+	 * @property {number} x current x position
+	 * @property {number} y current y position
+	 * @property {number} z current z position
+	 * @property {number} rx current x rotation
+	 * @property {number} ry current y rotation
+	 * @property {number} rz current z rotation
+	 * @  property {any?} model user chosen model
+	 * @  property {any?} colour skin color or similar
+	 */
+
 	updatePlayers() {
 		const game = this;
 
@@ -940,34 +992,36 @@ class GalerieApp {
 			}
 		});
 
-		this.serverPlayers.forEach(function (data) {
-			if (game.player.id == data.id) {
-				// console.log("we hit a local player");
-				// do ...
-			} else if (game.localPlayers.hasOwnProperty(data.id)) {
-				// Check if coordinates etc. have changed
-				const prevElem = game.localPlayers[data.id];
-				if (
-					data.x !== prevElem.position.x ||
-					data.y !== prevElem.position.y ||
-					data.z !== prevElem.position.z ||
-					data.ry !== prevElem.rotation.y ||
-					data.rx !== prevElem.rotation.x ||
-					data.rz !== prevElem.rotation.z
-				) {
-					// Update dictionary
+		this.serverPlayers.forEach(
+			/**@param {userData} data */ function (data) {
+				if (game.player.id == data.id) {
+					// console.log("we hit a local player");
+					// do ...
+				} else if (game.localPlayers.hasOwnProperty(data.id)) {
+					// Check if coordinates etc. have changed
+					const prevElem = game.localPlayers[data.id];
+					if (
+						data.x !== prevElem.position.x ||
+						data.y !== prevElem.position.y ||
+						data.z !== prevElem.position.z ||
+						data.ry !== prevElem.rotation.y ||
+						data.rx !== prevElem.rotation.x ||
+						data.rz !== prevElem.rotation.z
+					) {
+						// Update dictionary
+						console.log(data);
+						game.localPlayers[data.id].updatePosition(data);
+						console.log(`Player ${data.id} updated in local players`);
+					}
+					// console.log(data);
+				} else {
+					// If it's a new player
 					console.log(data);
-					game.localPlayers[data.id].updatePosition(data);
-					console.log(`Player ${data.id} updated in local players`);
+					game.localPlayers[data.id] = new RemotePlayer(game, data);
+					console.log(`Player ${data.id} added to local players`);
 				}
-				// console.log(data);
-			} else {
-				// If it's a new player
-				console.log(data);
-				game.localPlayers[data.id] = new RemotePlayer(game, data);
-				console.log(`Player ${data.id} added to local players`);
 			}
-		});
+		);
 	}
 
 	//Recursive UPDATE Loop
@@ -976,8 +1030,6 @@ class GalerieApp {
 			this.renderer.render(this.scene, this.camera);
 			this.updatePlayers();
 			this.renderAnimationFrame_();
-			// Update player coordinates
-			this.player.updatePosition(this.camera);
 		});
 		const time = performance.now();
 

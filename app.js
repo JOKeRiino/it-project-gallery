@@ -1,19 +1,35 @@
 const express = require('express');
 const app = express();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const _hserver = require('http').Server;
+const http = new _hserver(app);
+const SIOServer = require('socket.io').Server;
+const io = new SIOServer(http);
 
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
 });
 
+/**
+ * @typedef userData
+ * @property {number} x current x position
+ * @property {number} y current y position
+ * @property {number} z current z position
+ * @property {number} rx current x rotation
+ * @property {number} ry current y rotation
+ * @property {number} rz current z rotation
+ * @  property {any?} model user chosen model
+ * @  property {any?} colour skin color or similar
+ */
+
 io.on('connection', function (socket) {
 	socket.userData = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 }; //Default values;
+	socket.changed = true;
 
 	console.log(`${socket.id} connected`);
 	socket.on('disconnect', function () {
 		console.log(`Player ${socket.id} disconnected`);
+		io.emit('leave',socket.id)
 	});
 
 	socket.on('init', function (data) {
@@ -36,6 +52,29 @@ io.on('connection', function (socket) {
 		socket.userData.ry = data.ry;
 		socket.userData.rx = data.rx;
 		socket.userData.rz = data.rz;
+
+		socket.changed = true;
+	});
+
+	//Client requests the current full player state
+	socket.on('players', () => {
+		let players = [];
+
+		for (const [_, socket] of io.of('/').sockets) {
+			// console.log(socket);
+			players.push({
+				id: socket.id,
+				// model: socket.userData.model,
+				x: socket.userData.x,
+				y: socket.userData.y,
+				z: socket.userData.z,
+				ry: socket.userData.ry,
+				rx: socket.userData.rx,
+				rz: socket.userData.rz,
+			});
+		}
+
+		socket.emit('players', players);
 	});
 });
 
@@ -48,17 +87,20 @@ setInterval(function () {
 
 	for (const [_, socket] of io.of('/').sockets) {
 		// console.log(socket);
-		players.push({
-			id: socket.id,
-			// model: socket.userData.model,
-			x: socket.userData.x,
-			y: socket.userData.y,
-			z: socket.userData.z,
-			ry: socket.userData.ry,
-			rx: socket.userData.rx,
-			rz: socket.userData.rz,
-		});
+		if (socket.changed) {
+			players.push({
+				id: socket.id,
+				// model: socket.userData.model,
+				x: socket.userData.x,
+				y: socket.userData.y,
+				z: socket.userData.z,
+				ry: socket.userData.ry,
+				rx: socket.userData.rx,
+				rz: socket.userData.rz,
+			});
+			socket.changed = false;
+		}
 	}
 
-	if (players.length > 0) io.emit('players', players);
+	if (players.length > 0) io.emit('update', players);
 }, 40);
