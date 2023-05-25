@@ -80,8 +80,11 @@ class RemotePlayer extends Player {
 
 		//Create character model with starting position
 
-		// load xbot model
 		this.loader.load('img/models/xbot.fbx', model => {
+		// If u want to include new animations download them from mixamo with options:
+		// If available tick "In Place"
+		// Format Fbx 7.4
+		// Skin: Without Skin
 			this.anims = new THREE.AnimationMixer(model);
 			this.loader.load('img/models/animations/idle.fbx', data => {
 				this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
