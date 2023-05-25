@@ -54,6 +54,7 @@ class Player {
 	constructor(game) {
 		this.game = game;
 		this.loader = new FBXLoader(game.loadingManager);
+		this.textureLoader = new THREE.TextureLoader(game.loadingManager);
 	}
 }
 
@@ -79,19 +80,18 @@ class RemotePlayer extends Player {
 		};
 
 		//Create character model with starting position
-
-		this.loader.load('img/models/xbot.fbx', model => {
 		// If u want to include new animations download them from mixamo with options:
 		// If available tick "In Place"
 		// Format Fbx 7.4
 		// Skin: Without Skin
+		this.loader.load('img/models/Peasant Nolant.fbx', model => {
 			this.anims = new THREE.AnimationMixer(model);
-			this.loader.load('img/models/animations/idle.fbx', data => {
+			this.loader.load('img/models/animations/Idle.fbx', data => {
 				this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
 				this.availableAnimations.IDLE.setEffectiveWeight(1);
 				this.availableAnimations.IDLE.play();
 			});
-			this.loader.load('img/models/animations/Standard Walk.fbx', data => {
+			this.loader.load('img/models/animations/Walking.fbx', data => {
 				this.availableAnimations.WALKING = this.anims.clipAction(
 					data.animations[0]
 				);
@@ -102,8 +102,29 @@ class RemotePlayer extends Player {
 				if (o.isMesh) {
 					o.castShadow = true;
 					o.receiveShadow = true;
+
+					console.log(o.name);
+					// Hide hat
+					if (o.name === 'Hat') {
+						o.visible = false;
+						// o.renderOrder = -1;
+					}
 				}
 			});
+
+			// Load texture
+			this.textureLoader.load(
+				'img/models/textures/Peasant Nolant Brown.png',
+				function (texture) {
+					model.traverse(o => {
+						if (o.isMesh) {
+							o.material.map = texture;
+							o.material.needsUpdate = true;
+						}
+					});
+				}
+			);
+
 			model.scale.set(0.02, 0.02, 0.02);
 			// mixamo model is rotated inverse to the camera view
 			model.rotateY(Math.PI);
@@ -146,7 +167,7 @@ class RemotePlayer extends Player {
 				this.availableAnimations.WALKING?.setEffectiveWeight(0);
 				this.availableAnimations.IDLE?.setEffectiveWeight(1);
 			} else {
-				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity*2);
+				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity * 2);
 				this.availableAnimations.IDLE?.setEffectiveWeight(1 / this.velocity);
 			}
 			console.log(this.velocity);
