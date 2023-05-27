@@ -23,8 +23,9 @@ app.get('/', function (req, res) {
  */
 
 io.on('connection', function (socket) {
-	socket.userData = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 }; //Default values;
-	socket.changed = true;
+	socket.userData = null;
+	socket.changed = false;
+	socket.reinit = false
 
 	console.log(`${socket.id} connected`);
 	socket.on('disconnect', function () {
@@ -34,7 +35,8 @@ io.on('connection', function (socket) {
 
 	socket.on('init', function (data) {
 		console.log(`socket init ${socket.id}`);
-		// socket.userData.model = data.model;
+		socket.userData = {}
+		socket.userData.model = data.model;
 		// socket.userData.colour = data.colour;
 		socket.userData.x = data.x;
 		socket.userData.y = data.y;
@@ -42,6 +44,9 @@ io.on('connection', function (socket) {
 		socket.userData.ry = data.ry;
 		socket.userData.rx = data.rx;
 		socket.userData.rz = data.rz;
+		socket.userData.name = data.name;
+		socket.changed = true
+		socket.reinit = true
 	});
 
 	socket.on('update', function (data) {
@@ -61,10 +66,12 @@ io.on('connection', function (socket) {
 		let players = [];
 
 		for (const [_, socket] of io.of('/').sockets) {
+			if(!socket.userData) continue
 			// console.log(socket);
 			players.push({
 				id: socket.id,
-				// model: socket.userData.model,
+				name: socket.userData.name,
+				model: socket.userData.model,
 				x: socket.userData.x,
 				y: socket.userData.y,
 				z: socket.userData.z,
@@ -90,7 +97,8 @@ setInterval(function () {
 		if (socket.changed) {
 			players.push({
 				id: socket.id,
-				// model: socket.userData.model,
+				model: socket.reinit?socket.userData.model:null,
+				name: socket.reinit?socket.userData.name:null,
 				x: socket.userData.x,
 				y: socket.userData.y,
 				z: socket.userData.z,

@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import {
+	CSS2DRenderer,
+	CSS2DObject,
+} from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { NoiseGenerator } from './components/noiseGenerator.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { io, Socket } from 'socket.io-client';
@@ -47,6 +52,8 @@ class Player {
 	rotation;
 	/**@type {GalerieApp} */
 	game;
+	name = '';
+	model = '';
 	/**@param {GalerieApp} game */
 	constructor(game) {
 		this.game = game;
@@ -67,6 +74,8 @@ class RemotePlayer extends Player {
 		this.rotation.y = startingPosition.ry;
 		this.rotation.x = startingPosition.rx;
 		this.rotation.z = startingPosition.rz;
+
+		const fontloader = new FontLoader();
 
 		//TODO Create character model with starting position
 		// create a material with vertex coloring enabled
@@ -97,11 +106,19 @@ class RemotePlayer extends Player {
 		// add the color attribute to the geometry
 		geometry.setAttribute('color', colorAttribute);
 
+		let name = document.createElement('div');
+		name.textContent = startingPosition.name;
+		name.className = 'player-name';
+
+		this.nameTag = new CSS2DObject(name);
+
 		this.block = new THREE.Mesh(geometry, material);
+		this.block.add(this.nameTag);
 		this.game.scene.add(this.block);
 
 		// set the initial position of the block
 		this.block.position.set(this.position.x, this.position.y, this.position.z);
+		this.nameTag.position.copy(this.block.position);
 		this.block.rotation.x = startingPosition.rx;
 		this.block.rotation.y = startingPosition.ry;
 		this.block.rotation.z = startingPosition.rz;
@@ -118,6 +135,15 @@ class RemotePlayer extends Player {
 		this.rotation.x = position.rx;
 		this.rotation.z = position.rz;
 
+		if (position.name) {
+			this.name = position.name;
+			this.nameTag.element.innerText = this.name;
+		}
+		if (position.model) {
+			this.model = position.model;
+			// TODO: Change Model
+		}
+
 		// update the position of the block
 		this.block.position.set(position.x, position.y, position.z);
 		// update the rotation of the block
@@ -130,10 +156,12 @@ class RemotePlayer extends Player {
 
 	deletePlayer() {
 		this.game.scene.remove(this.block);
+		this.game.scene.remove(this.nameTag);
 		this.block.geometry.dispose(); // dispose its geometry
 		this.block.material.dispose(); // dispose its material
 		// this.block.texture.dispose(); // dispose its texture
 		this.block = undefined; // set it to undefined
+		this.nameTag = undefined;
 	}
 }
 
@@ -156,7 +184,8 @@ class LocalPlayer extends Player {
 		socket.on('connect', function () {
 			console.log(socket.id);
 			localPlayer.id = socket.id;
-			localPlayer.initSocket();
+			//localPlayer.initSocket();
+			socket.emit('players');
 		});
 
 		socket.on(
@@ -180,20 +209,19 @@ class LocalPlayer extends Player {
 			}
 		);
 
-		socket.on('leave',(id)=>{
-			console.debug('player disconnected:',id)
-			const index = game.serverPlayers.findIndex(p=>p.id===id)
-			if(index > -1)
-			game.serverPlayers.splice(index,1)
-		})
+		socket.on('leave', id => {
+			console.debug('player disconnected:', id);
+			const index = game.serverPlayers.findIndex(p => p.id === id);
+			if (index > -1) game.serverPlayers.splice(index, 1);
+		});
 	}
 
 	// TODO Add information about the player model like colour, character model,...
 	initSocket() {
-		console.log('PlayerLocal.initSocket');
+		console.log('PlayerLocal.initSocket', this);
 		this.socket.emit('init', {
-			// model: this.model,
-			// colour: this.colour,
+			model: this.model,
+			name: this.name,
 			x: this.position.x,
 			y: this.position.y,
 			z: this.position.z,
@@ -201,7 +229,6 @@ class LocalPlayer extends Player {
 			rx: this.rotation.x,
 			rz: this.rotation.z,
 		});
-		this.socket.emit('players');
 	}
 
 	/**@param {THREE.Camera} camera */
@@ -213,7 +240,7 @@ class LocalPlayer extends Player {
 			!this.rotation.equals(camera.rotation)
 		) {
 			this.position.copy(camera.position);
-			this.rotation.copy(camera.rotation)
+			this.rotation.copy(camera.rotation);
 			this.updateSocket();
 		}
 	}
@@ -257,9 +284,6 @@ class GalerieApp {
 		//Create a World and Render it
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
-			setInterval(() => {
-				this.player.updatePosition(this.camera);
-			}, 40);
 			let loadingScreen = document.getElementById('loading-screen');
 			loadingScreen.style.display = 'none';
 		});
@@ -274,6 +298,12 @@ class GalerieApp {
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
+
+		this.cssRenderer = new CSS2DRenderer({
+			element: document.getElementById('cssRenderer'),
+		});
+		this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+		document.body.appendChild(this.cssRenderer.domElement);
 
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(
@@ -307,6 +337,7 @@ class GalerieApp {
 			const width = window.innerWidth;
 			const height = window.innerHeight;
 			this.renderer.setSize(width, height);
+			this.cssRenderer.setSize(width, height);
 			this.camera.aspect = width / height;
 			this.camera.updateProjectionMatrix();
 		});
@@ -318,9 +349,23 @@ class GalerieApp {
 		const blocker = document.getElementById('blocker');
 		const instructions = document.getElementById('instructions');
 
-		instructions.addEventListener('click', function () {
-			controls.lock();
+		instructions.querySelector('form').addEventListener('submit', e => {
+			if (instructions.querySelector('form').checkValidity()) {
+				// TODO: Validate and save player name / model etc.
+				this.player.name = instructions.querySelector('#playerName').value;
+				this.player.model = instructions.querySelector('#playerModel').value;
+				this.player.initSocket();
+				if (!this.updater)
+					this.updater = setInterval(() => {
+						this.player.updatePosition(this.camera);
+					}, 40);
+				controls.lock();
+			}
 		});
+
+		// instructions.addEventListener('click', function () {
+		// 	controls.lock();
+		// });
 
 		controls.addEventListener('lock', function () {
 			instructions.style.display = 'none';
@@ -1028,6 +1073,7 @@ class GalerieApp {
 	renderAnimationFrame_() {
 		requestAnimationFrame(f => {
 			this.renderer.render(this.scene, this.camera);
+			this.cssRenderer.render(this.scene, this.camera);
 			this.updatePlayers();
 			this.renderAnimationFrame_();
 		});

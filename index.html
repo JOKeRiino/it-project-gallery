@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 	<head>
 		<meta charset="UTF-8" />
 		<meta
@@ -42,14 +42,39 @@
 		</div>
 		<div id="blocker">
 			<div id="instructions">
-				<p style="font-size: 36px">
-					Hier klicken, um die Bildergalerie zu betreten
-				</p>
+				<h1>Bildergalerie</h1>
 				<p>
-					Bewegen mit WASD<br />
+					Bewegen mit WASD oder Pfeiltasten<br />
 					Umschauen mit Maus
 				</p>
+				<form
+					action="javascript:void(0)">
+					<p>
+						<label for="playerName">Spielername</label>
+						<input
+							type="text"
+							name="playerName"
+							id="playerName"
+							placeholder="SomeCoolName"
+							maxlength="20"
+							required />
+					</p>
+					<p>
+						<label for="playerModel">Avatar</label>
+						<select id="playerModel" name="playerModel" required>
+							<option value="cube" selected>Würfel</option>
+						</select>
+					</p>
+					<!-- <p>
+						<label for="playerColor">Variante</label>
+						<select id="playerColor" name="playerColor" required>
+							<option value="default" selected>Standard</option>
+						</select>
+					</p> -->
+					<p><button type="submit">START</button></p>
+				</form>
 			</div>
 		</div>
+		<div id="cssRenderer"></div>
 	</body>
 </html>
