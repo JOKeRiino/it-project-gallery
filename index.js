@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import {
+	CSS2DRenderer,
+	CSS2DObject,
+} from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { NoiseGenerator } from './components/noiseGenerator.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { io, Socket } from 'socket.io-client';
@@ -50,6 +55,8 @@ class Player {
 	game;
 	/**@type {FBXLoader} */
 	loader;
+	name = '';
+	model = '';
 	/**@param {GalerieApp} game */
 	constructor(game) {
 		this.game = game;
@@ -151,6 +158,14 @@ class RemotePlayer extends Player {
 		this.rotation.z = position.rz;
 
 		this.velocity = position.velocity;
+		if (position.name) {
+			this.name = position.name;
+			this.nameTag.element.innerText = this.name;
+		}
+		if (position.model) {
+			this.model = position.model;
+			// TODO: Change Model
+		}
 
 		if (this.model) {
 			// update the position of the block
@@ -205,7 +220,8 @@ class LocalPlayer extends Player {
 		socket.on('connect', function () {
 			console.log(socket.id);
 			localPlayer.id = socket.id;
-			localPlayer.initSocket();
+			//localPlayer.initSocket();
+			socket.emit('players');
 		});
 
 		socket.on(
@@ -238,10 +254,10 @@ class LocalPlayer extends Player {
 
 	// TODO Add information about the player model like colour, character model,...
 	initSocket() {
-		console.log('PlayerLocal.initSocket');
+		console.log('PlayerLocal.initSocket', this);
 		this.socket.emit('init', {
-			// model: this.model,
-			// colour: this.colour,
+			model: this.model,
+			name: this.name,
 			x: this.position.x,
 			y: this.position.y,
 			z: this.position.z,
@@ -250,7 +266,6 @@ class LocalPlayer extends Player {
 			rz: this.rotation.z,
 			velocity: this.velocity,
 		});
-		this.socket.emit('players');
 	}
 
 	/**@param {THREE.Camera} camera */
@@ -303,14 +318,12 @@ class GalerieApp {
 		this.initializeLights_();
 		this.initializeScene_();
 		this.initializePointerlock();
+		this.initializeAvatarPreview_(document.getElementById('playerModel').value);
 
 		this._DEVSTATS_();
 		//Create a World and Render it
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
-			setInterval(() => {
-				this.player.updatePosition(this.camera, velocity.length() / 4.3);
-			}, 40);
 			let loadingScreen = document.getElementById('loading-screen');
 			loadingScreen.style.display = 'none';
 		});
@@ -321,10 +334,18 @@ class GalerieApp {
 
 	//Create and maintain Renderer, Camera, and Scene
 	initializeRenderer_() {
-		this.renderer = new THREE.WebGLRenderer();
+		this.renderer = new THREE.WebGLRenderer({
+			canvas: document.getElementById('main'),
+		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
+
+		this.cssRenderer = new CSS2DRenderer({
+			element: document.getElementById('cssRenderer'),
+		});
+		this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+		document.body.appendChild(this.cssRenderer.domElement);
 
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(
@@ -358,8 +379,83 @@ class GalerieApp {
 			const width = window.innerWidth;
 			const height = window.innerHeight;
 			this.renderer.setSize(width, height);
+			this.cssRenderer.setSize(width, height);
 			this.camera.aspect = width / height;
 			this.camera.updateProjectionMatrix();
+		});
+	}
+
+	initializeAvatarPreview_(model) {
+		console.debug(model);
+		const width = window.innerWidth / 10;
+		const height = window.innerHeight / 5;
+		let scene = new THREE.Scene();
+		scene.background = new THREE.Color('white');
+		let camera = new THREE.PerspectiveCamera(undefined, width / height);
+		camera.position.set(3, 2, 3);
+		scene.add(camera);
+
+		let avatar;
+
+		if (model == 'cube') {
+			// create a material with vertex coloring enabled
+			var material = new THREE.MeshBasicMaterial({ vertexColors: true });
+
+			// create a box geometry
+			var geometry = new THREE.BoxGeometry(1, 1, 1);
+
+			// get the position and color attributes of the geometry
+			var position = geometry.getAttribute('position');
+			var color = geometry.getAttribute('color');
+
+			// create an array to store the color data
+			var colors = [];
+
+			// loop through the vertices of the geometry
+			for (var i = 0; i < geometry.attributes.position.count; i++) {
+				// generate a random color for each vertex
+				var color = new THREE.Color(Math.random() * 0xffffff);
+
+				// push the color components to the array
+				colors.push(color.r, color.g, color.b);
+			}
+
+			// create a BufferAttribute object from the array
+			var colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
+
+			// add the color attribute to the geometry
+			geometry.setAttribute('color', colorAttribute);
+
+			avatar = new THREE.Mesh(geometry, material);
+			scene.add(avatar);
+			camera.lookAt(avatar.position);
+		}
+
+		const that = this;
+		function change(e) {
+			that.initializeAvatarPreview_(e.target.value);
+		}
+
+		document
+			.querySelector('select#playerModel')
+			.removeEventListener('change', change);
+		document
+			.querySelector('select#playerModel')
+			.addEventListener('change', change);
+
+		if (!this.avatarRenderer) {
+			this.avatarRenderer = new THREE.WebGLRenderer({
+				canvas: document.getElementById('avatarPreview'),
+			});
+			this.avatarRenderer.setSize(width, height);
+			this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
+		}
+		let last = performance.now();
+		this.avatarRenderer.setAnimationLoop((time, frame) => {
+			const delta = (time - last) / 1000;
+			avatar.rotation.y += delta;
+			this.avatarRenderer.render(scene, camera);
+			last = time;
 		});
 	}
 
@@ -369,19 +465,40 @@ class GalerieApp {
 		const blocker = document.getElementById('blocker');
 		const instructions = document.getElementById('instructions');
 
-		instructions.addEventListener('click', function () {
-			controls.lock();
+		instructions.querySelector('form').addEventListener('submit', e => {
+			if (instructions.querySelector('form').checkValidity()) {
+				// TODO: Validate and save player name / model etc.
+				this.player.name = instructions.querySelector('#playerName').value;
+				this.player.model = instructions.querySelector('#playerModel').value;
+				this.player.initSocket();
+				if (!this.updater)
+					this.updater = setInterval(() => {
+						this.player.updatePosition(this.camera, velocity.length() / 4.3);
+					}, 40);
+				controls.lock();
+				this.avatarRenderer.setAnimationLoop(null);
+				this.avatarRenderer.dispose();
+				this.avatarRenderer = undefined;
+			}
 		});
+
+		// instructions.addEventListener('click', function () {
+		// 	controls.lock();
+		// });
 
 		controls.addEventListener('lock', function () {
 			instructions.style.display = 'none';
 			blocker.style.display = 'none';
 			console.log('lock');
 		});
+		const that = this;
 
 		controls.addEventListener('unlock', function () {
 			blocker.style.display = 'block';
 			instructions.style.display = '';
+			that.initializeAvatarPreview_(
+				blocker.querySelector('select#playerModel').value
+			);
 			console.log('unlock');
 		});
 
@@ -1027,8 +1144,8 @@ class GalerieApp {
 	 * @property {number} ry current y rotation
 	 * @property {number} rz current z rotation
 	 * @property {number} velocity current movement speed
-	 * @  property {any?} model user chosen model
-	 * @  property {any?} colour skin color or similar
+	 * @property {string} model user chosen model
+	 * @property {string} name user chosen nickname
 	 */
 
 	updatePlayers() {
@@ -1083,6 +1200,7 @@ class GalerieApp {
 		const delta = (time - prevTime) / 1000;
 		requestAnimationFrame(f => {
 			this.renderer.render(this.scene, this.camera);
+			this.cssRenderer.render(this.scene, this.camera);
 			this.updatePlayers();
 			Object.values(this.localPlayers).forEach(p => {
 				p.anims?.update(delta);
