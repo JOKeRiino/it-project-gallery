@@ -118,7 +118,6 @@ class RemotePlayer extends Player {
 
 		// set the initial position of the block
 		this.block.position.set(this.position.x, this.position.y, this.position.z);
-		this.nameTag.position.copy(this.block.position);
 		this.block.rotation.x = startingPosition.rx;
 		this.block.rotation.y = startingPosition.ry;
 		this.block.rotation.z = startingPosition.rz;
@@ -157,6 +156,7 @@ class RemotePlayer extends Player {
 	deletePlayer() {
 		this.game.scene.remove(this.block);
 		this.game.scene.remove(this.nameTag);
+		this.nameTag.element.remove();
 		this.block.geometry.dispose(); // dispose its geometry
 		this.block.material.dispose(); // dispose its material
 		// this.block.texture.dispose(); // dispose its texture
@@ -279,6 +279,7 @@ class GalerieApp {
 		this.initializeLights_();
 		this.initializeScene_();
 		this.initializePointerlock();
+		this.initializeAvatarPreview_(document.getElementById('playerModel').value);
 
 		this._DEVSTATS_();
 		//Create a World and Render it
@@ -294,7 +295,9 @@ class GalerieApp {
 
 	//Create and maintain Renderer, Camera, and Scene
 	initializeRenderer_() {
-		this.renderer = new THREE.WebGLRenderer();
+		this.renderer = new THREE.WebGLRenderer({
+			canvas: document.getElementById('main'),
+		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
@@ -343,6 +346,80 @@ class GalerieApp {
 		});
 	}
 
+	initializeAvatarPreview_(model) {
+		console.debug(model);
+		const width = window.innerWidth / 10;
+		const height = window.innerHeight / 5;
+		let scene = new THREE.Scene();
+		scene.background = new THREE.Color('white');
+		let camera = new THREE.PerspectiveCamera(undefined, width / height);
+		camera.position.set(3, 2, 3);
+		scene.add(camera);
+
+		let avatar;
+
+		if (model == 'cube') {
+			// create a material with vertex coloring enabled
+			var material = new THREE.MeshBasicMaterial({ vertexColors: true });
+
+			// create a box geometry
+			var geometry = new THREE.BoxGeometry(1, 1, 1);
+
+			// get the position and color attributes of the geometry
+			var position = geometry.getAttribute('position');
+			var color = geometry.getAttribute('color');
+
+			// create an array to store the color data
+			var colors = [];
+
+			// loop through the vertices of the geometry
+			for (var i = 0; i < geometry.attributes.position.count; i++) {
+				// generate a random color for each vertex
+				var color = new THREE.Color(Math.random() * 0xffffff);
+
+				// push the color components to the array
+				colors.push(color.r, color.g, color.b);
+			}
+
+			// create a BufferAttribute object from the array
+			var colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
+
+			// add the color attribute to the geometry
+			geometry.setAttribute('color', colorAttribute);
+
+			avatar = new THREE.Mesh(geometry, material);
+			scene.add(avatar);
+			camera.lookAt(avatar.position);
+		}
+
+		const that = this;
+		function change(e) {
+			that.initializeAvatarPreview_(e.target.value);
+		}
+
+		document
+			.querySelector('select#playerModel')
+			.removeEventListener('change', change);
+		document
+			.querySelector('select#playerModel')
+			.addEventListener('change', change);
+
+		if (!this.avatarRenderer) {
+			this.avatarRenderer = new THREE.WebGLRenderer({
+				canvas: document.getElementById('avatarPreview'),
+			});
+			this.avatarRenderer.setSize(width, height);
+			this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
+		}
+		let last = performance.now();
+		this.avatarRenderer.setAnimationLoop((time, frame) => {
+			const delta = (time - last) / 1000;
+			avatar.rotation.y += delta;
+			this.avatarRenderer.render(scene, camera);
+			last = time;
+		});
+	}
+
 	initializePointerlock() {
 		controls = new PointerLockControls(this.camera, document.body);
 
@@ -360,6 +437,9 @@ class GalerieApp {
 						this.player.updatePosition(this.camera);
 					}, 40);
 				controls.lock();
+				this.avatarRenderer.setAnimationLoop(null);
+				this.avatarRenderer.dispose();
+				this.avatarRenderer = undefined;
 			}
 		});
 
@@ -372,10 +452,14 @@ class GalerieApp {
 			blocker.style.display = 'none';
 			console.log('lock');
 		});
+		const that = this;
 
 		controls.addEventListener('unlock', function () {
 			blocker.style.display = 'block';
 			instructions.style.display = '';
+			that.initializeAvatarPreview_(
+				blocker.querySelector('select#playerModel').value
+			);
 			console.log('unlock');
 		});
 
@@ -1019,8 +1103,8 @@ class GalerieApp {
 	 * @property {number} rx current x rotation
 	 * @property {number} ry current y rotation
 	 * @property {number} rz current z rotation
-	 * @  property {any?} model user chosen model
-	 * @  property {any?} colour skin color or similar
+	 * @property {string} model user chosen model
+	 * @property {string} name user chosen nickname
 	 */
 
 	updatePlayers() {

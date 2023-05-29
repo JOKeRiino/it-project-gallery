@@ -2,8 +2,8 @@ const express = require('express');
 const app = express();
 const _hserver = require('http').Server;
 const http = new _hserver(app);
-const SIOServer = require('socket.io').Server;
-const io = new SIOServer(http);
+const sio = require('socket.io')
+const io = new sio.Server(http);
 
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
@@ -18,11 +18,21 @@ app.get('/', function (req, res) {
  * @property {number} rx current x rotation
  * @property {number} ry current y rotation
  * @property {number} rz current z rotation
- * @  property {any?} model user chosen model
- * @  property {any?} colour skin color or similar
+ * @property {string} model user chosen model
+ * @property {string} name user chosen nickname
  */
 
-io.on('connection', function (socket) {
+/**
+ * @typedef SocketExtensions
+ * @property {userData} userData
+ * @property {boolean} changed
+ * @property {boolean} reinit
+ * 
+ * @typedef {sio.Socket & SocketExtensions} ExtendedSocket
+ */
+
+io.on('connection', /**@param {ExtendedSocket} socket*/function (socket) {
+	/**@type {userData} */
 	socket.userData = null;
 	socket.changed = false;
 	socket.reinit = false
