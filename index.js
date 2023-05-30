@@ -153,9 +153,10 @@ class RemotePlayer extends Player {
 				//this.model = model;
 				this.game.scene.add(this.model);
 				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
-				this.model.rotation.x = startingPosition.rx;
+				this.model.rotation.order = 'YXZ'
+				//this.model.rotation.x = startingPosition.rx;
 				this.model.rotation.y = startingPosition.ry;
-				this.model.rotation.z = startingPosition.rz;
+				//this.model.rotation.z = startingPosition.rz;
 			}
 		);
 
@@ -168,8 +169,8 @@ class RemotePlayer extends Player {
 		this.position.z = position.z;
 
 		this.rotation.y = position.ry;
-		this.rotation.x = position.rx;
-		this.rotation.z = position.rz;
+		// this.rotation.x = position.rx;
+		// this.rotation.z = position.rz;
 
 		this.velocity = position.velocity;
 		if (position.name) {
@@ -225,9 +226,10 @@ class RemotePlayer extends Player {
 				//this.model = model;
 				this.game.scene.add(this.model);
 				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
-				this.model.rotation.x = position.rx;
-				this.model.rotation.y = position.ry;
-				this.model.rotation.z = position.rz;
+				this.model.rotation.order = 'YXZ'
+				//this.model.rotation.x = position.rx;
+				//this.model.rotation.y = position.ry;
+				//this.model.rotation.z = position.rz;
 			});
 			// TODO: Change Model
 		}
@@ -236,9 +238,9 @@ class RemotePlayer extends Player {
 			// update the position of the block
 			this.model.position.set(position.x, 0.2, position.z); // position.y
 			// update the rotation of the block
-			this.model.rotation.x = position.rx;
+			//this.model.rotation.x = position.rx;
 			this.model.rotation.y = position.ry;
-			this.model.rotation.z = position.rz;
+			//this.model.rotation.z = position.rz;
 
 			if (this.velocity > 0.5) {
 				this.availableAnimations.WALKING?.setEffectiveWeight(2);
@@ -436,6 +438,8 @@ class GalerieApp {
 			0.1,
 			1000
 		);
+
+		this.camera.rotation.order = 'YXZ'
 
 		//Configuring Loading Manager for Loading Screen
 		THREE.Cache.enabled = true;
