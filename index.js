@@ -480,9 +480,6 @@ class GalerieApp {
 		let light = new THREE.AmbientLight('white');
 		scene.add(light);
 		scene.background = new THREE.Color('white');
-		let camera = new THREE.PerspectiveCamera(undefined, width / height);
-		camera.position.set(3, 2, 3);
-		scene.add(camera);
 
 		let avatar;
 
@@ -493,6 +490,42 @@ class GalerieApp {
 					let clip = anims.clipAction(data.animations[0]);
 					clip.play();
 				});
+
+				mdl.scale.set(0.02, 0.02, 0.02);
+
+				let bbox = new THREE.Box3()
+				bbox.setFromObject(mdl)
+				let width = bbox.max.x - bbox.min.x
+				let height = bbox.max.y - bbox.min.y
+				const pad_height=height/10
+				width += width/10
+				height += pad_height
+
+				mdl.position.y = pad_height/2
+				
+				let camera = new THREE.OrthographicCamera(-width/2,width/2,height/2,-height/2);
+				camera.position.set(5,height/2,5)
+				camera.lookAt(0,height/2,0)
+				scene.add(camera);
+
+				if (!this.avatarRenderer) {
+					this.avatarRenderer = new THREE.WebGLRenderer({
+						canvas: document.getElementById('avatarPreview'),
+						antialias:true
+					});
+					this.avatarRenderer.setSize(width * 50, height * 50);
+					this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
+				}
+				let last = performance.now();
+		
+				this.avatarRenderer.setAnimationLoop((time, frame) => {
+					const delta = (time - last) / 1000;
+					if (avatar) avatar.rotation.y += delta;
+					anims.update(delta)
+					this.avatarRenderer.render(scene, camera);
+					last = time;
+				});
+				
 				mdl.traverse(o => {
 					if (o.isMesh) {
 						// o.castShadow = true;
@@ -518,28 +551,9 @@ class GalerieApp {
 					});
 					scene.add(mdl);
 				});
-
-				mdl.scale.set(0.02, 0.02, 0.02);
 				avatar = mdl;
-				camera.lookAt(0, 2, 0);
 			});
 		}
-
-		if (!this.avatarRenderer) {
-			this.avatarRenderer = new THREE.WebGLRenderer({
-				canvas: document.getElementById('avatarPreview'),
-			});
-			this.avatarRenderer.setSize(width, height);
-			this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
-		}
-		let last = performance.now();
-
-		this.avatarRenderer.setAnimationLoop((time, frame) => {
-			const delta = (time - last) / 1000;
-			if (avatar) avatar.rotation.y += delta;
-			this.avatarRenderer.render(scene, camera);
-			last = time;
-		});
 	}
 
 	initializePointerlock() {
