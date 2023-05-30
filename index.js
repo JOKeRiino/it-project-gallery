@@ -88,6 +88,7 @@ class RemotePlayer extends Player {
 		name.className = 'player-name';
 
 		this.nameTag = new CSS2DObject(name);
+		this.nameTag.position.set(0,2,0)
 
 		/**@type{Object.<string,THREE.AnimationAction>} */
 		this.availableAnimations = {
