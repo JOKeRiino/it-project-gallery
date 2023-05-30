@@ -56,7 +56,7 @@ class Player {
 	/**@type {FBXLoader} */
 	loader;
 	name = '';
-	model = '';
+	avatar = '';
 	/**@param {GalerieApp} game */
 	constructor(game) {
 		this.game = game;
@@ -80,6 +80,15 @@ class RemotePlayer extends Player {
 		this.rotation.x = startingPosition.rx;
 		this.rotation.z = startingPosition.rz;
 
+		this.name = startingPosition.name;
+		this.avatar = startingPosition.model;
+
+		let name = document.createElement('div');
+		name.textContent = startingPosition.name;
+		name.className = 'player-name';
+
+		this.nameTag = new CSS2DObject(name);
+
 		/**@type{Object.<string,THREE.AnimationAction>} */
 		this.availableAnimations = {
 			WALKING: null,
@@ -91,59 +100,63 @@ class RemotePlayer extends Player {
 		// If available tick "In Place"
 		// Format Fbx 7.4
 		// Skin: Without Skin
-		this.loader.load('img/models/Peasant Nolant.fbx', model => {
-			this.anims = new THREE.AnimationMixer(model);
-			this.loader.load('img/models/animations/Idle.fbx', data => {
-				this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
-				this.availableAnimations.IDLE.setEffectiveWeight(1);
-				this.availableAnimations.IDLE.play();
-			});
-			this.loader.load('img/models/animations/Walking.fbx', data => {
-				this.availableAnimations.WALKING = this.anims.clipAction(
-					data.animations[0]
-				);
-				this.availableAnimations.WALKING.setEffectiveWeight(0);
-				this.availableAnimations.WALKING.play();
-			});
-			model.traverse(o => {
-				if (o.isMesh) {
-					o.castShadow = true;
-					o.receiveShadow = true;
+		this.loader.load(
+			`img/models/avatars/${startingPosition.model}.fbx`,
+			model => {
+				this.anims = new THREE.AnimationMixer(model);
+				this.loader.load('img/models/animations/Idle.fbx', data => {
+					this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
+					this.availableAnimations.IDLE.setEffectiveWeight(1);
+					this.availableAnimations.IDLE.play();
+				});
+				this.loader.load('img/models/animations/Walking.fbx', data => {
+					this.availableAnimations.WALKING = this.anims.clipAction(
+						data.animations[0]
+					);
+					this.availableAnimations.WALKING.setEffectiveWeight(0);
+					this.availableAnimations.WALKING.play();
+				});
+				model.traverse(o => {
+					if (o.isMesh) {
+						o.castShadow = true;
+						o.receiveShadow = true;
 
-					console.log(o.name);
-					// Hide hat
-					if (o.name === 'Hat') {
-						o.visible = false;
-						// o.renderOrder = -1;
-					}
-				}
-			});
-
-			// Load texture
-			this.textureLoader.load(
-				'img/models/textures/Peasant Nolant Brown.png',
-				function (texture) {
-					model.traverse(o => {
-						if (o.isMesh) {
-							o.material.map = texture;
-							o.material.needsUpdate = true;
+						console.log(o.name);
+						// Hide hat
+						if (o.name === 'Hat') {
+							o.visible = false;
+							// o.renderOrder = -1;
 						}
-					});
-				}
-			);
+					}
+				});
 
-			model.scale.set(0.02, 0.02, 0.02);
-			// mixamo model is rotated inverse to the camera view
-			model.rotateY(Math.PI);
-			this.model = new THREE.Group();
-			this.model.add(model);
-			//this.model = model;
-			this.game.scene.add(this.model);
-			this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
-			this.model.rotation.x = startingPosition.rx;
-			this.model.rotation.y = startingPosition.ry;
-			this.model.rotation.z = startingPosition.rz;
-		});
+				// Load texture
+				this.textureLoader.load(
+					`img/models/avatars/textures/${startingPosition.model}.png`,
+					function (texture) {
+						model.traverse(o => {
+							if (o.isMesh) {
+								o.material.map = texture;
+								o.material.needsUpdate = true;
+							}
+						});
+					}
+				);
+
+				model.scale.set(0.02, 0.02, 0.02);
+				// mixamo model is rotated inverse to the camera view
+				model.rotateY(Math.PI);
+				this.model = new THREE.Group();
+				this.model.add(model);
+				this.model.add(this.nameTag);
+				//this.model = model;
+				this.game.scene.add(this.model);
+				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
+				this.model.rotation.x = startingPosition.rx;
+				this.model.rotation.y = startingPosition.ry;
+				this.model.rotation.z = startingPosition.rz;
+			}
+		);
 
 		console.log('New Remote Player created');
 	}
@@ -163,7 +176,58 @@ class RemotePlayer extends Player {
 			this.nameTag.element.innerText = this.name;
 		}
 		if (position.model) {
-			this.model = position.model;
+			this.avatar = position.model;
+			delete position.model
+			this.game.scene.remove(this.model);
+			this.loader.load(`img/models/avatars/${this.avatar}.fbx`, model => {
+				this.anims = new THREE.AnimationMixer(model);
+				let avan = this.availableAnimations;
+				this.availableAnimations = {};
+				console.debug(avan);
+				Object.entries(avan).forEach(([k, v]) => {
+					this.availableAnimations[k] = this.anims.clipAction(v.getClip());
+					this.availableAnimations[k].play();
+				});
+				model.traverse(o => {
+					if (o.isMesh) {
+						o.castShadow = true;
+						o.receiveShadow = true;
+
+						console.log(o.name);
+						// Hide hat
+						if (o.name === 'Hat') {
+							o.visible = false;
+							// o.renderOrder = -1;
+						}
+					}
+				});
+
+				// Load texture
+				this.textureLoader.load(
+					`img/models/avatars/textures/${this.avatar}.png`,
+					function (texture) {
+						model.traverse(o => {
+							if (o.isMesh) {
+								o.material.map = texture;
+								o.material.needsUpdate = true;
+							}
+						});
+					}
+				);
+
+				model.scale.set(0.02, 0.02, 0.02);
+				// mixamo model is rotated inverse to the camera view
+				model.rotateY(Math.PI);
+				this.model = new THREE.Group();
+				this.model.add(model);
+				this.model.add(this.nameTag)
+				//this.model = model;
+				this.game.scene.add(this.model);
+				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
+				this.model.rotation.x = position.rx;
+				this.model.rotation.y = position.ry;
+				this.model.rotation.z = position.rz;
+			});
 			// TODO: Change Model
 		}
 
@@ -194,6 +258,7 @@ class RemotePlayer extends Player {
 	deletePlayer() {
 		if (this.model) {
 			this.game.scene.remove(this.model);
+			this.nameTag.element.remove();
 			// this.block.texture.dispose(); // dispose its texture
 			this.model = undefined; // set it to undefined
 		}
@@ -318,7 +383,23 @@ class GalerieApp {
 		this.initializeLights_();
 		this.initializeScene_();
 		this.initializePointerlock();
-		this.initializeAvatarPreview_(document.getElementById('playerModel').value);
+		fetch('/avatars').then(r =>
+			r.json().then(r => {
+				let sel = document.getElementById('playerModel');
+				sel.append(
+					...r.map(model => {
+						let op = document.createElement('option');
+						op.value = model;
+						op.innerText = model;
+						return op;
+					})
+				);
+				sel.addEventListener('change', e => {
+					this.initializeAvatarPreview_(e.target.value);
+				});
+				this.initializeAvatarPreview_(document.getElementById('playerModel').value);
+			})
+		);
 
 		this._DEVSTATS_();
 		//Create a World and Render it
@@ -356,12 +437,17 @@ class GalerieApp {
 		);
 
 		//Configuring Loading Manager for Loading Screen
+		THREE.Cache.enabled = true;
 		this.loadingManager = new THREE.LoadingManager();
 		let loader = document.getElementById('loader');
 		this.loadingManager.onProgress = (url, loaded, total) => {
 			loader.style.width = (loaded / total) * 100 + '%';
 		};
 		this.gltfLoader = new GLTFLoader(this.loadingManager);
+		this.fbxLoader = new FBXLoader(this.loadingManager);
+		this.textureLoader = new THREE.TextureLoader(this.loadingManager);
+		this.fbxLoader.setPath('img/models/avatars/textures/');
+		this.textureLoader.setPath('img/models/avatars/textures/');
 
 		this.camera.position.set(
 			this.startingPosition.position.x,
@@ -390,6 +476,8 @@ class GalerieApp {
 		const width = window.innerWidth / 10;
 		const height = window.innerHeight / 5;
 		let scene = new THREE.Scene();
+		let light = new THREE.AmbientLight('white');
+		scene.add(light);
 		scene.background = new THREE.Color('white');
 		let camera = new THREE.PerspectiveCamera(undefined, width / height);
 		camera.position.set(3, 2, 3);
@@ -397,51 +485,44 @@ class GalerieApp {
 
 		let avatar;
 
-		if (model == 'cube') {
-			// create a material with vertex coloring enabled
-			var material = new THREE.MeshBasicMaterial({ vertexColors: true });
+		if (model) {
+			this.fbxLoader.load('../' + model + '.fbx', mdl => {
+				let anims = new THREE.AnimationMixer(mdl);
+				this.fbxLoader.load('../../animations/Idle.fbx', data => {
+					let clip = anims.clipAction(data.animations[0]);
+					clip.play();
+				});
+				mdl.traverse(o => {
+					if (o.isMesh) {
+						// o.castShadow = true;
+						// o.receiveShadow = true;
 
-			// create a box geometry
-			var geometry = new THREE.BoxGeometry(1, 1, 1);
+						console.log(o.name);
+						// Hide hat
+						if (o.name === 'Hat') {
+							o.visible = false;
+							// o.renderOrder = -1;
+						}
+					}
+				});
 
-			// get the position and color attributes of the geometry
-			var position = geometry.getAttribute('position');
-			var color = geometry.getAttribute('color');
+				// Load texture
+				this.textureLoader.load(model + '.png', function (texture) {
+					mdl.traverse(o => {
+						if (o.isMesh) {
+							console.debug('set tex', o);
+							o.material.map = texture;
+							o.material.needsUpdate = true;
+						}
+					});
+					scene.add(mdl);
+				});
 
-			// create an array to store the color data
-			var colors = [];
-
-			// loop through the vertices of the geometry
-			for (var i = 0; i < geometry.attributes.position.count; i++) {
-				// generate a random color for each vertex
-				var color = new THREE.Color(Math.random() * 0xffffff);
-
-				// push the color components to the array
-				colors.push(color.r, color.g, color.b);
-			}
-
-			// create a BufferAttribute object from the array
-			var colorAttribute = new THREE.Float32BufferAttribute(colors, 3);
-
-			// add the color attribute to the geometry
-			geometry.setAttribute('color', colorAttribute);
-
-			avatar = new THREE.Mesh(geometry, material);
-			scene.add(avatar);
-			camera.lookAt(avatar.position);
+				mdl.scale.set(0.02, 0.02, 0.02);
+				avatar = mdl;
+				camera.lookAt(0, 2, 0);
+			});
 		}
-
-		const that = this;
-		function change(e) {
-			that.initializeAvatarPreview_(e.target.value);
-		}
-
-		document
-			.querySelector('select#playerModel')
-			.removeEventListener('change', change);
-		document
-			.querySelector('select#playerModel')
-			.addEventListener('change', change);
 
 		if (!this.avatarRenderer) {
 			this.avatarRenderer = new THREE.WebGLRenderer({
@@ -451,9 +532,10 @@ class GalerieApp {
 			this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
 		}
 		let last = performance.now();
+
 		this.avatarRenderer.setAnimationLoop((time, frame) => {
 			const delta = (time - last) / 1000;
-			avatar.rotation.y += delta;
+			if (avatar) avatar.rotation.y += delta;
 			this.avatarRenderer.render(scene, camera);
 			last = time;
 		});
@@ -1176,7 +1258,9 @@ class GalerieApp {
 						data.z !== prevElem.position.z ||
 						data.ry !== prevElem.rotation.y ||
 						data.rx !== prevElem.rotation.x ||
-						data.rz !== prevElem.rotation.z
+						data.rz !== prevElem.rotation.z ||
+						data.model ||
+						data.name
 					) {
 						// Update dictionary
 						console.log(data);
@@ -1187,7 +1271,9 @@ class GalerieApp {
 				} else {
 					// If it's a new player
 					console.log(data);
-					game.localPlayers[data.id] = new RemotePlayer(game, data);
+					game.localPlayers[data.id] = new RemotePlayer(game, Object.assign({},data));
+					delete data.model
+					delete data.name
 					console.log(`Player ${data.id} added to local players`);
 				}
 			}
