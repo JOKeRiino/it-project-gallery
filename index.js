@@ -88,7 +88,7 @@ class RemotePlayer extends Player {
 		name.className = 'player-name';
 
 		this.nameTag = new CSS2DObject(name);
-		this.nameTag.position.set(0,2,0)
+		this.nameTag.position.set(0, 2, 0);
 
 		/**@type{Object.<string,THREE.AnimationAction>} */
 		this.availableAnimations = {
@@ -153,7 +153,7 @@ class RemotePlayer extends Player {
 				//this.model = model;
 				this.game.scene.add(this.model);
 				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
-				this.model.rotation.order = 'YXZ'
+				this.model.rotation.order = 'YXZ';
 				//this.model.rotation.x = startingPosition.rx;
 				this.model.rotation.y = startingPosition.ry;
 				//this.model.rotation.z = startingPosition.rz;
@@ -179,7 +179,7 @@ class RemotePlayer extends Player {
 		}
 		if (position.model) {
 			this.avatar = position.model;
-			delete position.model
+			delete position.model;
 			this.game.scene.remove(this.model);
 			this.loader.load(`img/models/avatars/${this.avatar}.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
@@ -222,11 +222,11 @@ class RemotePlayer extends Player {
 				model.rotateY(Math.PI);
 				this.model = new THREE.Group();
 				this.model.add(model);
-				this.model.add(this.nameTag)
+				this.model.add(this.nameTag);
 				//this.model = model;
 				this.game.scene.add(this.model);
 				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
-				this.model.rotation.order = 'YXZ'
+				this.model.rotation.order = 'YXZ';
 				//this.model.rotation.x = position.rx;
 				//this.model.rotation.y = position.ry;
 				//this.model.rotation.z = position.rz;
@@ -390,8 +390,11 @@ class GalerieApp {
 			r.json().then(r => {
 				let sel = document.getElementById('playerModel');
 				sel.append(
-					...r.map(model => {
+					...r.map((model, i) => {
 						let op = document.createElement('option');
+						if (i === 0) {
+							op.selected = true;
+						}
 						op.value = model;
 						op.innerText = model;
 						return op;
@@ -439,7 +442,7 @@ class GalerieApp {
 			1000
 		);
 
-		this.camera.rotation.order = 'YXZ'
+		this.camera.rotation.order = 'YXZ';
 
 		//Configuring Loading Manager for Loading Screen
 		THREE.Cache.enabled = true;
@@ -483,7 +486,6 @@ class GalerieApp {
 		let scene = new THREE.Scene();
 		let light = new THREE.AmbientLight('white');
 		scene.add(light);
-		scene.background = new THREE.Color('white');
 
 		let avatar;
 
@@ -497,39 +499,45 @@ class GalerieApp {
 
 				mdl.scale.set(0.02, 0.02, 0.02);
 
-				let bbox = new THREE.Box3()
-				bbox.setFromObject(mdl)
-				let width = bbox.max.x - bbox.min.x
-				let height = bbox.max.y - bbox.min.y
-				const pad_height=height/10
-				width += width/10
-				height += pad_height
+				let bbox = new THREE.Box3();
+				bbox.setFromObject(mdl);
+				let width = bbox.max.x - bbox.min.x;
+				let height = bbox.max.y - bbox.min.y;
+				const pad_height = height / 10;
+				width += width / 10;
+				height += pad_height;
 
-				mdl.position.y = pad_height/2
-				
-				let camera = new THREE.OrthographicCamera(-width/2,width/2,height/2,-height/2);
-				camera.position.set(5,height/2,5)
-				camera.lookAt(0,height/2,0)
+				mdl.position.y = pad_height / 2;
+
+				let camera = new THREE.OrthographicCamera(
+					-width / 2,
+					width / 2,
+					height / 2,
+					-height / 2
+				);
+				camera.position.set(5, height / 2, 5);
+				camera.lookAt(0, height / 2, 0);
 				scene.add(camera);
 
 				if (!this.avatarRenderer) {
 					this.avatarRenderer = new THREE.WebGLRenderer({
 						canvas: document.getElementById('avatarPreview'),
-						antialias:true
+						antialias: true,
+						alpha: true,
 					});
 					this.avatarRenderer.setSize(width * 50, height * 50);
 					this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
 				}
 				let last = performance.now();
-		
+
 				this.avatarRenderer.setAnimationLoop((time, frame) => {
 					const delta = (time - last) / 1000;
 					if (avatar) avatar.rotation.y += delta;
-					anims.update(delta)
+					anims.update(delta);
 					this.avatarRenderer.render(scene, camera);
 					last = time;
 				});
-				
+
 				mdl.traverse(o => {
 					if (o.isMesh) {
 						// o.castShadow = true;
@@ -1290,9 +1298,12 @@ class GalerieApp {
 				} else {
 					// If it's a new player
 					console.log(data);
-					game.localPlayers[data.id] = new RemotePlayer(game, Object.assign({},data));
-					delete data.model
-					delete data.name
+					game.localPlayers[data.id] = new RemotePlayer(
+						game,
+						Object.assign({}, data)
+					);
+					delete data.model;
+					delete data.name;
 					console.log(`Player ${data.id} added to local players`);
 				}
 			}

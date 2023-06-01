@@ -43,14 +43,44 @@
 		</div>
 		<div id="blocker">
 			<div id="instructions">
-				<h1>Bildergalerie</h1>
-				<p>
-					Bewegen mit WASD oder Pfeiltasten<br />
-					Umschauen mit Maus
-				</p>
-				<form
-					action="javascript:void(0)">
-					<p>
+				<div class="window">
+					<h1>Bildergalerie</h1>
+					<div class="controls-flex">
+						<div class="controls-flex-item">
+							<h2>Bewegen:</h2>
+							<div class="key-flex">
+								<div class="row">
+									<div class="key">W</div>
+								</div>
+								<div class="row">
+									<div class="key">A</div>
+									<div class="key">S</div>
+									<div class="key">D</div>
+								</div>
+							</div>
+						</div>
+						<div>
+							<h2>Umsehen:</h2>
+							<div class="key-flex">
+								<svg
+									width="24"
+									height="24"
+									viewBox="0 0 24 24"
+									fill="none"
+									xmlns="http://www.w3.org/2000/svg">
+									<path
+										d="M12 5C11.4477 5 11 5.44772 11 6V10C11 10.5523 11.4477 11 12 11C12.5523 11 13 10.5523 13 10V6C13 5.44772 12.5523 5 12 5Z"
+										fill="currentColor" />
+									<path
+										fill-rule="evenodd"
+										clip-rule="evenodd"
+										d="M4 8C4 3.58172 7.58172 0 12 0C16.4183 0 20 3.58172 20 8V16C20 20.4183 16.4183 24 12 24C7.58172 24 4 20.4183 4 16V8ZM18 8V16C18 19.3137 15.3137 22 12 22C8.68629 22 6 19.3137 6 16V8C6 4.68629 8.68629 2 12 2C15.3137 2 18 4.68629 18 8Z"
+										fill="currentColor" />
+								</svg>
+							</div>
+						</div>
+					</div>
+					<form action="javascript:void(0)">
 						<label for="playerName">Spielername</label>
 						<input
 							type="text"
@@ -59,22 +89,28 @@
 							placeholder="SomeCoolName"
 							maxlength="20"
 							required />
-					</p>
-					<p>
 						<label for="playerModel">Avatar</label>
-						<select id="playerModel" name="playerModel" required>
-							<option value="" selected disabled>Bitte Wählen</option>
+						<select
+							id="playerModel"
+							name="playerModel"
+							required>
+							<option
+								value=""
+								selected
+								disabled>
+								Bitte wählen
+							</option>
 						</select>
-					</p>
-					<!-- <p>
+						<!-- <p>
 						<label for="playerColor">Variante</label>
 						<select id="playerColor" name="playerColor" required>
 							<option value="default" selected>Standard</option>
 						</select>
 					</p> -->
-					<canvas id="avatarPreview"></canvas>
-					<p><button type="submit">START</button></p>
-				</form>
+						<canvas id="avatarPreview"></canvas>
+						<button type="submit"><b>Gallerie betreten!</b></button>
+					</form>
+				</div>
 			</div>
 		</div>
 		<div id="cssRenderer"></div>
