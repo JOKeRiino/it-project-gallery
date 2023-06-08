@@ -31,6 +31,13 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
+
+// TODO: For chatbox
+let chatbox = document.querySelector('#chatbox');
+let chatIcon = document.querySelector('#chat-icon');
+let messageInput = document.querySelector('#message-input');
+let messagesContainer = document.querySelector('#messages');
+
 /**@type {PointerLockControls} */
 let controls;
 let moveForward = false;
@@ -44,7 +51,6 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 //const vertex = new THREE.Vector3(); evtl fuer kollision?
 
-// TODO Klassen LocalPlayer und RemotePlayer erstellen?
 class Player {
 	id = '';
 	/**@type {THREE.Vector3} */
@@ -663,8 +669,39 @@ class GalerieApp {
 				case 'KeyD':
 					moveRight = false;
 					break;
+				case 'Enter':
+					console.log('Enter');
+					if (
+						chatbox.classList.contains('visible') &&
+						messageInput.value.trim() !== ''
+					) {
+						let message = document.createElement('p');
+						message.textContent = messageInput.value;
+						messagesContainer.append(message);
+						messageInput.value = '';
+					}
+					toggleChatbox();
 			}
 		};
+
+		function toggleChatbox() {
+			chatbox.classList.toggle('visible');
+			if (chatbox.classList.contains('visible')) {
+				messageInput.focus();
+				scrollToEnd();
+			}
+		}
+
+		function scrollToEnd() {
+			window.requestAnimationFrame(() => {
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			});
+		}
+
+		// Show the chatbox when the chat icon is clicked
+		chatIcon.addEventListener('click', function () {
+			toggleChatbox();
+		});
 
 		document.addEventListener('keydown', onKeyDown);
 		document.addEventListener('keyup', onKeyUp);
