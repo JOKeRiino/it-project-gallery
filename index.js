@@ -258,7 +258,7 @@ class RemotePlayer extends Player {
 				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity * 2);
 				this.availableAnimations.IDLE?.setEffectiveWeight(1 / this.velocity);
 			}
-			console.log(this.velocity);
+			// console.log(this.velocity);
 
 			this.model.position.needsUpdate = true; // tell three.js to update the position
 		}
@@ -324,6 +324,11 @@ class LocalPlayer extends Player {
 			const index = game.serverPlayers.findIndex(p => p.id === id);
 			if (index > -1) game.serverPlayers.splice(index, 1);
 		});
+
+		socket.on('message', data => {
+			console.log('received msg: ' + data.message + ' from user: ' + data.sender);
+			this.appendMessage(data);
+		});
 	}
 
 	// TODO Add information about the player model like colour, character model,...
@@ -368,6 +373,25 @@ class LocalPlayer extends Player {
 				rz: this.rotation.z,
 				velocity: this.velocity,
 			});
+		}
+	}
+
+	sendMessage(message) {
+		console.log('sendMessage(): ' + message);
+		if (this.socket !== undefined) {
+			this.socket.emit('message', {
+				message: message,
+			});
+		}
+	}
+
+	appendMessage(data) {
+		if (data != null) {
+			let message = document.createElement('p');
+			message.textContent = `[${new Date(data.timestamp).toLocaleTimeString()}] ${
+				data.sender
+			}: ${data.message}`;
+			messagesContainer.append(message);
 		}
 	}
 }
@@ -619,6 +643,8 @@ class GalerieApp {
 
 		this.scene.add(controls.getObject());
 
+		let player = this.player;
+
 		const onKeyDown = function (event) {
 			switch (event.code) {
 				case 'ArrowUp':
@@ -670,14 +696,14 @@ class GalerieApp {
 					moveRight = false;
 					break;
 				case 'Enter':
-					console.log('Enter');
 					if (
 						chatbox.classList.contains('visible') &&
 						messageInput.value.trim() !== ''
 					) {
-						let message = document.createElement('p');
-						message.textContent = messageInput.value;
-						messagesContainer.append(message);
+						// let message = document.createElement('p');
+						// message.textContent = messageInput.value;
+						// messagesContainer.append(message);
+						player.sendMessage(messageInput.value);
 						messageInput.value = '';
 					}
 					toggleChatbox();
@@ -1327,11 +1353,10 @@ class GalerieApp {
 						data.name
 					) {
 						// Update dictionary
-						console.log(data);
+						// console.log(data);
 						game.localPlayers[data.id].updatePosition(data);
 						console.log(`Player ${data.id} updated in local players`);
 					}
-					// console.log(data);
 				} else {
 					// If it's a new player
 					console.log(data);
