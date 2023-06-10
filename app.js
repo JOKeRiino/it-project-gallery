@@ -43,7 +43,7 @@ app.get('/avatars', (req, res) => {
  *
  * @typedef {sio.Socket & SocketExtensions} ExtendedSocket
  */
-const that = this
+const that = this;
 io.on(
 	'connection',
 	/**@param {ExtendedSocket} socket*/ function (socket) {
@@ -55,7 +55,7 @@ io.on(
 		console.log(`${socket.id} connected`);
 		if (!that.interval) {
 			console.debug('waking up 🥱. Starting periodic update loop...');
-			that.interval = setInterval(()=>{
+			that.interval = setInterval(() => {
 				let players = [];
 
 				for (const [_, socket] of io.of('/').sockets) {
@@ -92,7 +92,9 @@ io.on(
 			if (io.of('/').sockets.size < 1) {
 				clearInterval(that.interval);
 				that.interval = undefined;
-				console.debug('sleeping 😴. stopping periodic update loop, no one connected anymore.');
+				console.debug(
+					'sleeping 😴. stopping periodic update loop, no one connected anymore.'
+				);
 			}
 		});
 
@@ -149,6 +151,16 @@ io.on(
 			}
 
 			socket.emit('players', players);
+		});
+
+		socket.on('message', function (data) {
+			let username = socket.userData?.name ? socket.userData.name : socket.id;
+			let timestamp = new Date();
+			io.emit('message', {
+				timestamp: timestamp,
+				sender: username,
+				message: data.message,
+			});
 		});
 	}
 );

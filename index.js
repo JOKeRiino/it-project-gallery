@@ -31,6 +31,18 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
+
+// Chatbox selectors
+const chatbox = document.querySelector('#chatbox');
+const chatIcon = document.querySelector('#chat-icon');
+const messageInput = document.querySelector('#message-input');
+const messagesContainer = document.querySelector('#messages');
+
+// Flags indicating the source of the pointerlock events
+let pointerLockForChat = false;
+let pointerLockRegular = true;
+let isFormSubmitting = false;
+
 /**@type {PointerLockControls} */
 let controls;
 let moveForward = false;
@@ -44,7 +56,6 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 //const vertex = new THREE.Vector3(); evtl fuer kollision?
 
-// TODO Klassen LocalPlayer und RemotePlayer erstellen?
 class Player {
 	id = '';
 	/**@type {THREE.Vector3} */
@@ -252,7 +263,7 @@ class RemotePlayer extends Player {
 				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity * 2);
 				this.availableAnimations.IDLE?.setEffectiveWeight(1 / this.velocity);
 			}
-			console.log(this.velocity);
+			// console.log(this.velocity);
 
 			this.model.position.needsUpdate = true; // tell three.js to update the position
 		}
@@ -318,6 +329,11 @@ class LocalPlayer extends Player {
 			const index = game.serverPlayers.findIndex(p => p.id === id);
 			if (index > -1) game.serverPlayers.splice(index, 1);
 		});
+
+		socket.on('message', data => {
+			console.log('received msg: ' + data.message + ' from user: ' + data.sender);
+			this.appendMessage(data);
+		});
 	}
 
 	// TODO Add information about the player model like colour, character model,...
@@ -362,6 +378,25 @@ class LocalPlayer extends Player {
 				rz: this.rotation.z,
 				velocity: this.velocity,
 			});
+		}
+	}
+
+	sendMessage(message) {
+		console.log('sendMessage(): ' + message);
+		if (this.socket !== undefined) {
+			this.socket.emit('message', {
+				message: message,
+			});
+		}
+	}
+
+	appendMessage(data) {
+		if (data != null) {
+			let message = document.createElement('p');
+			message.textContent = `[${new Date(data.timestamp).toLocaleTimeString()}] ${
+				data.sender
+			}: ${data.message}`;
+			messagesContainer.append(message);
 		}
 	}
 }
@@ -576,6 +611,9 @@ class GalerieApp {
 
 		instructions.querySelector('form').addEventListener('submit', e => {
 			if (instructions.querySelector('form').checkValidity()) {
+				// To not trigger the chatbox
+				isFormSubmitting = true;
+
 				// TODO: Validate and save player name / model etc.
 				this.player.name = instructions.querySelector('#playerName').value;
 				this.player.model = instructions.querySelector('#playerModel').value;
@@ -588,6 +626,11 @@ class GalerieApp {
 				this.avatarRenderer.setAnimationLoop(null);
 				this.avatarRenderer.dispose();
 				this.avatarRenderer = undefined;
+
+				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
+				setTimeout(() => {
+					isFormSubmitting = false;
+				}, 100);
 			}
 		});
 
@@ -596,22 +639,39 @@ class GalerieApp {
 		// });
 
 		controls.addEventListener('lock', function () {
+			// If the menu and the chatbox is open and the menu is being closed, hide the chatbox as well
+			if (pointerLockRegular && chatbox.classList.contains('visible')) {
+				chatbox.classList.remove('visible');
+			}
 			instructions.style.display = 'none';
 			blocker.style.display = 'none';
+
+			// Reset flags
+			pointerLockForChat = false;
+			pointerLockRegular = false;
+
 			console.log('lock');
 		});
 		const that = this;
 
 		controls.addEventListener('unlock', function () {
-			blocker.style.display = 'block';
-			instructions.style.display = '';
-			that.initializeAvatarPreview_(
-				blocker.querySelector('select#playerModel').value
-			);
+			// If event is triggered by chatbox don't open the menu
+			if (pointerLockForChat) {
+				pointerLockForChat = false;
+			} else {
+				blocker.style.display = 'block';
+				instructions.style.display = '';
+				that.initializeAvatarPreview_(
+					blocker.querySelector('select#playerModel').value
+				);
+				pointerLockRegular = true;
+			}
 			console.log('unlock');
 		});
 
 		this.scene.add(controls.getObject());
+
+		let player = this.player;
 
 		const onKeyDown = function (event) {
 			switch (event.code) {
@@ -663,8 +723,45 @@ class GalerieApp {
 				case 'KeyD':
 					moveRight = false;
 					break;
+				case 'Enter':
+					// Check if the enter event is triggered by the submit of the menu form
+					if (!isFormSubmitting) {
+						if (
+							chatbox.classList.contains('visible') &&
+							messageInput.value.trim() !== ''
+						) {
+							player.sendMessage(messageInput.value);
+							messageInput.value = '';
+						}
+						toggleChatbox();
+					}
+					break;
 			}
 		};
+
+		function toggleChatbox() {
+			chatbox.classList.toggle('visible');
+			if (chatbox.classList.contains('visible')) {
+				messageInput.focus();
+				scrollToEnd();
+				pointerLockForChat = true;
+				controls.unlock();
+			} else if (!pointerLockRegular) {
+				pointerLockForChat = true;
+				controls.lock();
+			}
+		}
+
+		function scrollToEnd() {
+			window.requestAnimationFrame(() => {
+				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			});
+		}
+
+		// Show the chatbox when the chat icon is clicked
+		chatIcon.addEventListener('click', function () {
+			toggleChatbox();
+		});
 
 		document.addEventListener('keydown', onKeyDown);
 		document.addEventListener('keyup', onKeyUp);
@@ -1290,11 +1387,10 @@ class GalerieApp {
 						data.name
 					) {
 						// Update dictionary
-						console.log(data);
+						// console.log(data);
 						game.localPlayers[data.id].updatePosition(data);
 						console.log(`Player ${data.id} updated in local players`);
 					}
-					// console.log(data);
 				} else {
 					// If it's a new player
 					console.log(data);
