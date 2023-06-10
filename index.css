@@ -233,17 +233,23 @@ label {
 	color: #000;
 	background-color: rgba(209, 209, 209, 0.3);
 	border-radius: 5%;
+	transition: background-color 0.3s;
+	box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
 #chatbox.visible {
-	background-color: #d1cfcf;
-	border-color: #000;
+	/* background-color: #d1cfcf; */
+	background-color: rgba(189, 189, 189, 0.788);
+
+	box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.5);
 }
 
 #message-input {
 	display: none;
 	width: 100%;
-	margin-bottom: 10px;
+	margin-bottom: 0px;
+	padding: 10px;
+	transition: display 0.3s;
 }
 
 #chatbox.visible #message-input {
@@ -253,6 +259,11 @@ label {
 #messages {
 	flex-grow: 1;
 	overflow: hidden;
+}
+
+#messages p {
+	padding: 2px 0px 2px 0px;
+	word-wrap: break-word;
 }
 
 #chatbox.visible #messages {
