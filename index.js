@@ -32,11 +32,15 @@ function getImgDimensions(img, canvasSize) {
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
 
-// TODO: For chatbox
-let chatbox = document.querySelector('#chatbox');
-let chatIcon = document.querySelector('#chat-icon');
-let messageInput = document.querySelector('#message-input');
-let messagesContainer = document.querySelector('#messages');
+// Chatbox selectors
+const chatbox = document.querySelector('#chatbox');
+const chatIcon = document.querySelector('#chat-icon');
+const messageInput = document.querySelector('#message-input');
+const messagesContainer = document.querySelector('#messages');
+
+// Flags indicating the source of the pointerlock events
+let pointerLockForChat = false;
+let pointerLockRegular = true;
 
 /**@type {PointerLockControls} */
 let controls;
@@ -626,18 +630,33 @@ class GalerieApp {
 		// });
 
 		controls.addEventListener('lock', function () {
+			// If the menu and the chatbox is open and the menu is being closed, hide the chatbox as well
+			if (pointerLockRegular && chatbox.classList.contains('visible')) {
+				chatbox.classList.remove('visible');
+			}
 			instructions.style.display = 'none';
 			blocker.style.display = 'none';
+
+			// Reset flags
+			pointerLockForChat = false;
+			pointerLockRegular = false;
+
 			console.log('lock');
 		});
 		const that = this;
 
 		controls.addEventListener('unlock', function () {
-			blocker.style.display = 'block';
-			instructions.style.display = '';
-			that.initializeAvatarPreview_(
-				blocker.querySelector('select#playerModel').value
-			);
+			// If event is triggered by chatbox don't open the menu
+			if (pointerLockForChat) {
+				pointerLockForChat = false;
+			} else {
+				blocker.style.display = 'block';
+				instructions.style.display = '';
+				that.initializeAvatarPreview_(
+					blocker.querySelector('select#playerModel').value
+				);
+				pointerLockRegular = true;
+			}
 			console.log('unlock');
 		});
 
@@ -700,9 +719,6 @@ class GalerieApp {
 						chatbox.classList.contains('visible') &&
 						messageInput.value.trim() !== ''
 					) {
-						// let message = document.createElement('p');
-						// message.textContent = messageInput.value;
-						// messagesContainer.append(message);
 						player.sendMessage(messageInput.value);
 						messageInput.value = '';
 					}
@@ -715,6 +731,11 @@ class GalerieApp {
 			if (chatbox.classList.contains('visible')) {
 				messageInput.focus();
 				scrollToEnd();
+				pointerLockForChat = true;
+				controls.unlock();
+			} else if (!pointerLockRegular) {
+				pointerLockForChat = true;
+				controls.lock();
 			}
 		}
 
