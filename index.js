@@ -41,6 +41,7 @@ const messagesContainer = document.querySelector('#messages');
 // Flags indicating the source of the pointerlock events
 let pointerLockForChat = false;
 let pointerLockRegular = true;
+let isFormSubmitting = false;
 
 /**@type {PointerLockControls} */
 let controls;
@@ -610,6 +611,9 @@ class GalerieApp {
 
 		instructions.querySelector('form').addEventListener('submit', e => {
 			if (instructions.querySelector('form').checkValidity()) {
+				// To not trigger the chatbox
+				isFormSubmitting = true;
+
 				// TODO: Validate and save player name / model etc.
 				this.player.name = instructions.querySelector('#playerName').value;
 				this.player.model = instructions.querySelector('#playerModel').value;
@@ -622,6 +626,11 @@ class GalerieApp {
 				this.avatarRenderer.setAnimationLoop(null);
 				this.avatarRenderer.dispose();
 				this.avatarRenderer = undefined;
+
+				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
+				setTimeout(() => {
+					isFormSubmitting = false;
+				}, 100);
 			}
 		});
 
@@ -715,14 +724,18 @@ class GalerieApp {
 					moveRight = false;
 					break;
 				case 'Enter':
-					if (
-						chatbox.classList.contains('visible') &&
-						messageInput.value.trim() !== ''
-					) {
-						player.sendMessage(messageInput.value);
-						messageInput.value = '';
+					// Check if the enter event is triggered by the submit of the menu form
+					if (!isFormSubmitting) {
+						if (
+							chatbox.classList.contains('visible') &&
+							messageInput.value.trim() !== ''
+						) {
+							player.sendMessage(messageInput.value);
+							messageInput.value = '';
+						}
+						toggleChatbox();
 					}
-					toggleChatbox();
+					break;
 			}
 		};
 
