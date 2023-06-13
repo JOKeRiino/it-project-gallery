@@ -5,6 +5,8 @@ const http = new _hserver(app);
 const sio = require('socket.io');
 const io = new sio.Server(http);
 const fs = require('fs');
+const axios = require('axios');
+const cheerio = require('cheerio');
 
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
@@ -21,6 +23,62 @@ app.get('/avatars', (req, res) => {
 			.map(f => f.name.replace(/.fbx$/, ''))
 	);
 });
+
+app.get('/scrapeImages', (req, res) => {
+	if (!fs.existsSync('imageData.json')) {
+		scrapeData().then(images => {
+			res.send(JSON.stringify(images));
+		});
+	} else {
+		console.log('file exists');
+		res.send(JSON.parse(fs.readFileSync('imageData.json')));
+	}
+});
+
+async function scrapeData() {
+	console.log('Starting scraping....');
+	let images = [];
+	for (let i = 1; i <= 8; i++) {
+		const url = `http://digbb.informatik.fh-nuernberg.de/best-five-2022-23/page/${i}/`;
+		const { data } = await axios.get(url);
+		const $ = cheerio.load(data);
+		pageElements = $('.pcdesktop');
+
+		pageElements.each((idx, el) => {
+			console.log('Page ' + i + ' of 8. Scraping element ' + idx);
+			let metaData = $(el)
+				.children('.gallery-title-autor')
+				.children('.author')
+				.attr('title')
+				.split('-');
+
+			if (metaData.length > 1) {
+				let img = {
+					img: $(el)
+						.children('.imagebox')
+						.children('a')
+						.children('img')
+						.attr('src')
+						.replace('-350x350', ''),
+					author: metaData[1].trim(),
+					title: metaData[0].trim(),
+				};
+
+				images.push(img);
+			}
+		});
+	}
+
+	fs.writeFile('imageData.json', JSON.stringify(images, null, 2), err => {
+		if (err) {
+			console.log(err);
+			return;
+		}
+		console.log('File created successfully');
+	});
+
+	return images;
+}
 
 /**
  * @typedef userData

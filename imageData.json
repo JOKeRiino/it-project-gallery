@@ -1,0 +1,457 @@
+[
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Ancient.jpg",
+    "author": "Johannes Niu",
+    "title": "Ancient"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Overpass.jpg",
+    "author": "Johannes Niu",
+    "title": "Overpass"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Canals.jpg",
+    "author": "Johannes Niu",
+    "title": "Canals"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Italy.jpg",
+    "author": "Johannes Niu",
+    "title": "Italy"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Guitars.jpg",
+    "author": "Johannes Niu",
+    "title": "Guitars"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Stadtgraben-Ice-PS-Kopie.jpg",
+    "author": "Philipp Jäger",
+    "title": "Plärrer on Ice"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/St.-Pauls-susnet-Kopie.jpg",
+    "author": "Philipp Jäger",
+    "title": "Sun Flare"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/ny-bef.jpg",
+    "author": "Philipp Jäger",
+    "title": "Time Slice NYC"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Koenigssee-4-Kopie.jpg",
+    "author": "Philipp Jäger",
+    "title": "Reflecting"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/6-Float-after-Kopie.jpg",
+    "author": "Philipp Jäger",
+    "title": "Levitating"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Top5_Tetris_VN.jpg",
+    "author": "Luisa Miehling",
+    "title": "T(H)etris"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Top5_P7310074_VN.jpg",
+    "author": "Luisa Miehling",
+    "title": "Flauschig, Flauschiger, Am Flauschigsten"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Top5_P3011354_VN.jpg",
+    "author": "Luisa Miehling",
+    "title": "Windmühlen von Kinderdijks"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Top5_P1010073_VN.jpg",
+    "author": "Luisa Miehling",
+    "title": "Dem Glück entgegen"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Top5_IMG_7505_VN.jpg",
+    "author": "Luisa Miehling",
+    "title": "Katze in Szene"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Sonnenuntergang_Schiff_top5.jpg",
+    "author": "Andrei de Vroom",
+    "title": "Schiff im Sonnenuntergang"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Hase_top5.jpg",
+    "author": "Andrei de Vroom",
+    "title": "Hase mit Karotte"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Edinburgh_Wanderung_top5.jpg",
+    "author": "Andrei de Vroom",
+    "title": "Edinburgh Wanderung"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/BB_Polarlicht_top5.jpg",
+    "author": "Andrei de Vroom",
+    "title": "Polarlicht im BB"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Alte_Stadt_top5.jpg",
+    "author": "Andrei de Vroom",
+    "title": "Kroatisches Städtchen"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Fifties.jpg",
+    "author": "Simon Tröster",
+    "title": "Taste the Feeling"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/2Salitos.png",
+    "author": "Simon Tröster",
+    "title": "Kalt serviert"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/IMG_20230122_104121-fertig_mitoriginal.png",
+    "author": "Marc Kloos",
+    "title": "Winterlandschaft"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/3Charly.png",
+    "author": "Simon Tröster",
+    "title": "Schneetag"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/V9_fertig_mitoriginal.png",
+    "author": "Marc Kloos",
+    "title": "Fancy Vogel"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Schlossgarten_fertig_mitoriginal.png",
+    "author": "Marc Kloos",
+    "title": "Schlossgarten"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/GrosseSteine-Bearbeitet_mitoriginal.png",
+    "author": "Marc Kloos",
+    "title": "HappyMoment"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/5Brutalismus.png",
+    "author": "Simon Tröster",
+    "title": "Brutalismus"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/CyberNuernberg__final_mitoriginal.png",
+    "author": "Marc Kloos",
+    "title": "CyperNürnberg"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/4Hundeblick.png",
+    "author": "Simon Tröster",
+    "title": "Hundeblick"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Reflections.jpg",
+    "author": "SAWE MEHDY",
+    "title": "REFLECTIONS"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Night-Sky.jpg",
+    "author": "SAWE MEHDY",
+    "title": "NIGHT SKY"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/XMAS-Lights.jpg",
+    "author": "SAWE MEHDY",
+    "title": "XMAS LIGHTS"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Coffee-1.jpg",
+    "author": "SAWE MEHDY",
+    "title": "COFFEE"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Theatre.jpg",
+    "author": "SAWE MEHDY",
+    "title": "THEATRE"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Wiener-Riesenrad.png",
+    "author": "Arthur Eberle",
+    "title": "Wiener Riesenrad"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Tomate-in-Szene.png",
+    "author": "Arthur Eberle",
+    "title": "Tomate in Szene"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Schmetterling.png",
+    "author": "Arthur Eberle",
+    "title": "Schmetterling"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Perfuem.png",
+    "author": "Arthur Eberle",
+    "title": "Perfüm in Szene"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Blick-ueber-Nuernberg.png",
+    "author": "Arthur Eberle",
+    "title": "Blick über Nürnberg"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/sweets_bo5.jpg",
+    "author": "Bernhard Schiffer",
+    "title": "Süßigkeiten"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/sheep_bo5.jpg",
+    "author": "Bernhard Schiffer",
+    "title": "Schaf in der Blumenwiese"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/fire_by_the_sea_bo5-1.png",
+    "author": "Bernhard Schiffer",
+    "title": "Fire by the sea"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/pesto_bo5.jpg",
+    "author": "Bernhard Schiffer",
+    "title": "Pesto"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/trees_bo5.jpg",
+    "author": "Bernhard Schiffer",
+    "title": "Lichtblick"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/th-nuernberg_villa.jpg",
+    "author": "Nürnberg Villa des Studienbüros",
+    "title": "TH"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/th-nuernberg_treppen.jpg",
+    "author": "Nürnberg Treppenhaus bei Nacht",
+    "title": "TH"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/sonnenaufgang_ueber_nuernberg.jpg",
+    "author": "Alexander Fischer",
+    "title": "Sonnenaufgang in Nürnberg"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/haeppchen_in_szene.jpg",
+    "author": "Alexander Fischer",
+    "title": "Häppchen"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/felsen_am_meer.jpg",
+    "author": "Alexander Fischer",
+    "title": "Felsen am Meer"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/b5_dk_1l.jpg",
+    "author": "David Kube",
+    "title": "A moment in time: zx6r"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/b5_dk_3.jpg",
+    "author": "David Kube",
+    "title": "Kawasaki ZX6R"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/b5_dk_4.jpg",
+    "author": "David Kube",
+    "title": "Omega2"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/b5_dk_2l.jpg",
+    "author": "David Kube",
+    "title": "Laufer Schlagturm"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/b5_dk_0l.jpg",
+    "author": "David Kube",
+    "title": "Omega"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/candyTrain-min.jpg",
+    "author": "Max Skibin",
+    "title": "Candy Train"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/herbstlichesKarlsbad-1.jpg",
+    "author": "Max Skibin",
+    "title": "HerbstlichesKarlsbad"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/vintageCity.jpg",
+    "author": "Max Skibin",
+    "title": "Vintage Praag"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/sturmImWinter.jpg",
+    "author": "Max Skibin",
+    "title": "Sturm im Winter"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/atomicHorror.jpg",
+    "author": "Max Skibin",
+    "title": "AtomicHorror"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Zelt_Schweden_florian_gebhardt.jpg",
+    "author": "Florian Gebhardt",
+    "title": "Zelten in Schweden"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Portal_florian_gebhardt.jpg",
+    "author": "Florian Gebhardt",
+    "title": "Portal zur Burg"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Neon_Garage_florian_gebhardt.jpg",
+    "author": "Florian Gebhardt",
+    "title": "Neon Garage"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/m33_florian_gebhardt.jpg",
+    "author": "Florian Gebhardt",
+    "title": "M33"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Leo_Triplet_florian_gebhardt.jpg",
+    "author": "Florian Gebhardt",
+    "title": "Leo Triplet"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Parfüm-Louis-Burk.png",
+    "author": "Louis Burk",
+    "title": "Parfüm"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Energy-Louis-Burk.jpg",
+    "author": "Louis Burk",
+    "title": "Energy"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Wassertorstrasse-Louis-Burk.jpg",
+    "author": "Louis Burk",
+    "title": "Wassertorstraße"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Blue-in-the-Clouds-Louis-Burk.jpg",
+    "author": "Louis Burk",
+    "title": "Blue in the clouds"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Blue-Louis-Burk-.png",
+    "author": "Louis Burk",
+    "title": "Blue"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/silv-best5.jpg",
+    "author": "Andreas Hahn",
+    "title": "Silvester"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/katze-best5.jpg",
+    "author": "Andreas Hahn",
+    "title": "Britisch Kurzhaar"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/henkerhaus-best5.jpg",
+    "author": "Andreas Hahn",
+    "title": "Henkerhaus"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Feuerzange-best5.jpg",
+    "author": "Andreas Hahn",
+    "title": "Feuerzangenbowle"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/bananen-mann-best5.jpg",
+    "author": "Man",
+    "title": "Banana"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/bird_combined-1.jpg",
+    "author": "Leon Müller",
+    "title": "Bird"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/katana_combined-copy-1.jpg",
+    "author": "Leon Müller",
+    "title": "Katana"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/vacation_combined-1.jpg",
+    "author": "Leon Müller",
+    "title": "Vacation"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/cats_combinaed-2.jpg",
+    "author": "Leon Müller",
+    "title": "Sacred Birman Cuties"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/cats_combinaed-1.jpg",
+    "author": "Leon Müller",
+    "title": "Sacred Birman Cuties"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/nbg_never_seend_combined_medium-2.jpg",
+    "author": "Leon Müller",
+    "title": "New Nuremberg"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/PEOPLE.jpg",
+    "author": "Matthias Viessmann",
+    "title": "Neon Kunst"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/SCHWEIN.jpg",
+    "author": "Matthias Viessmann",
+    "title": "Meerschweinchen"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/FLAKON.jpg",
+    "author": "Matthias Viessmann",
+    "title": "Flakon"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/STRABA.jpg",
+    "author": "Matthias Viessmann",
+    "title": "Straba"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/FLASCHE.jpg",
+    "author": "Matthias Viessmann",
+    "title": "Sauerstoffflaschen"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/schottland-2.jpg",
+    "author": "Johannes Günther",
+    "title": "Schottland"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Goldener-Herbst.jpg",
+    "author": "Johannes Günther",
+    "title": "Goldener Herbst"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Stofftier.jpg",
+    "author": "Johannes Günther",
+    "title": "Stofftier in Szene gesetzt"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Rose.jpg",
+    "author": "Johannes Günther",
+    "title": "Rose"
+  },
+  {
+    "img": "http://digbb.informatik.fh-nuernberg.de/wp-content/uploads/Pegnitz.jpg",
+    "author": "Johannes Günther",
+    "title": "Pegnitz"
+  }
+]
