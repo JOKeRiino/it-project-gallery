@@ -13,6 +13,16 @@ app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/image-proxy', async (req, res) => {
+	const imageUrl = req.query.url;
+	const response = await axios.get(imageUrl, {
+		responseType: 'arraybuffer',
+	});
+
+	res.set('Content-Type', response.headers['content-type']);
+	res.send(response.data);
+});
+
 app.get('/avatars', (req, res) => {
 	let avail_avatars = fs.readdirSync(__dirname + '/img/models/avatars', {
 		withFileTypes: true,
@@ -54,7 +64,7 @@ async function scrapeData() {
 
 			if (metaData.length > 1) {
 				let img = {
-					img: $(el)
+					url: $(el)
 						.children('.imagebox')
 						.children('a')
 						.children('img')
