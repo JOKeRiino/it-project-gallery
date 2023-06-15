@@ -630,7 +630,7 @@ class GalerieApp {
 				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
 				setTimeout(() => {
 					isFormSubmitting = false;
-				}, 100);
+				}, 1000);
 			}
 		});
 
