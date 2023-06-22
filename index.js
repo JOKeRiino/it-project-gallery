@@ -64,8 +64,8 @@ const messagesContainer = document.querySelector('#messages');
 let pointerLockForChat = false;
 let pointerLockRegular = true;
 let isFormSubmitting = false;
-/**@type {PointerLockControls} */
 let controls;
+/**@type {PointerLockControls} */
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
@@ -75,7 +75,6 @@ let canJump = false;
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-//const vertex = new THREE.Vector3(); evtl fuer kollision?
 
 class GalerieApp {
 	constructor() {
@@ -89,13 +88,12 @@ class GalerieApp {
 
 		// Two seperate variables to check wether the server sends new players or if players are missing
 		this.serverPlayers = [];
-		/**@type {Object.<string,RemotePlayer>} */
 		this.localPlayers = {};
+		/**@type {Object.<string,RemotePlayer>} */
 		this.roomTiles = [];
 
 		this.initializeRenderer_();
-		this.initializeLights_();
-		this.initializeScene_();
+		this.initializeSkyBoxAndLights_();
 		this.initializePointerlock();
 		fetch('/avatars').then(r =>
 			r.json().then(r => {
@@ -118,7 +116,8 @@ class GalerieApp {
 			})
 		);
 
-		this._DEVSTATS_();
+		this._DEVSTATS_(); //Deactivate in production
+
 		//Create a World and Render it
 		this.initializeGallery_().then(() => {
 			this.renderAnimationFrame_();
@@ -151,11 +150,23 @@ class GalerieApp {
 		);
 		this.camera.rotation.order = 'YXZ';
 
-		this.rayCaster = new THREE.Raycaster();
+		this.camera.position.set(
+			this.startingPosition.position.x,
+			this.startingPosition.position.y,
+			this.startingPosition.position.z
+		);
+		this.camera.lookAt(
+			this.startingPosition.rotation.x,
+			this.startingPosition.rotation.y,
+			this.startingPosition.rotation.z
+		);
+
 		this.screenCenter = new THREE.Vector2(
 			window.innerWidth / 2,
 			window.innerHeight / 2
 		);
+
+		this.rayCaster = new THREE.Raycaster();
 
 		this.pictureLabelElem = document.createElement('div');
 		let pictureLabelAuthor = document.createElement('h2');
@@ -178,19 +189,8 @@ class GalerieApp {
 		this.gltfLoader = new GLTFLoader(this.loadingManager);
 		this.fbxLoader = new FBXLoader(this.loadingManager);
 		this.textureLoader = new THREE.TextureLoader(this.loadingManager);
+		this.textureLoader.crossOrigin = 'Anonymous';
 		this.fbxLoader.setPath('img/models/avatars/textures/');
-		this.textureLoader.setPath('img/models/avatars/textures/');
-
-		this.camera.position.set(
-			this.startingPosition.position.x,
-			this.startingPosition.position.y,
-			this.startingPosition.position.z
-		);
-		this.camera.lookAt(
-			this.startingPosition.rotation.x,
-			this.startingPosition.rotation.y,
-			this.startingPosition.rotation.z
-		);
 
 		//EventListener to react to a change in window size.
 		window.addEventListener('resize', () => {
@@ -285,16 +285,19 @@ class GalerieApp {
 				});
 
 				// Load texture
-				this.textureLoader.load(model + '.png', function (texture) {
-					mdl.traverse(o => {
-						if (o.isMesh) {
-							console.debug('set tex', o);
-							o.material.map = texture;
-							o.material.needsUpdate = true;
-						}
-					});
-					scene.add(mdl);
-				});
+				this.textureLoader.load(
+					'img/models/avatars/textures/' + model + '.png',
+					function (texture) {
+						mdl.traverse(o => {
+							if (o.isMesh) {
+								console.debug('set tex', o);
+								o.material.map = texture;
+								o.material.needsUpdate = true;
+							}
+						});
+						scene.add(mdl);
+					}
+				);
 				avatar = mdl;
 			});
 		}
@@ -462,19 +465,8 @@ class GalerieApp {
 		document.addEventListener('keyup', onKeyUp);
 	}
 
-	//Add Lights to App
-	initializeLights_() {
-		var hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
-		hemiLight.position.set(0, 300, 0);
-		this.scene.add(hemiLight);
-
-		var dirLight = new THREE.DirectionalLight(0xffffff);
-		dirLight.position.set(75, 300, -75);
-		this.scene.add(dirLight);
-	}
-
-	//Creating the Scene
-	initializeScene_() {
+	//Creating the sky and the lights
+	initializeSkyBoxAndLights_() {
 		//SKY
 		this.scene.background = new THREE.CubeTextureLoader()
 			.setPath('img/skybox/')
@@ -486,27 +478,13 @@ class GalerieApp {
 				'sky_front.webp',
 				'sky_back.webp',
 			]);
-
-		//FLOOR
-		let floorGeo = new THREE.PlaneGeometry(1000, 1000);
-		floorGeo.rotateY(Math.PI);
-		let floorTexture = new THREE.TextureLoader().load(
-			'img/materials/grass_0.png'
-		);
-		floorTexture.wrapS = THREE.RepeatWrapping;
-		floorTexture.wrapT = THREE.RepeatWrapping;
-		floorTexture.repeat.set(512, 512);
-		let floorMat = new THREE.MeshBasicMaterial({
-			map: floorTexture,
-			side: THREE.FrontSide,
-		});
-		let floorMesh = new THREE.Mesh(floorGeo, floorMat);
-		floorMesh.receiveShadow = true;
-		floorMesh.rotation.x = Math.PI / 2;
-		this.scene.add(floorMesh);
-
-		//Other
-		this.objects = [];
+		//LIGHTS
+		let hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+		hemiLight.position.set(0, 300, 0);
+		this.scene.add(hemiLight);
+		var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+		dirLight.position.set(75, 300, -75);
+		this.scene.add(dirLight);
 	}
 
 	/**
@@ -518,28 +496,21 @@ class GalerieApp {
 	 * @property {string} author
 	 * @property {string} profileUrl
 	 */
-
 	async initializeGallery_() {
-		//Funktion generiert so lange Räume bis die Größe passt.
-		//Erst dann wird der Raum gerendert.
 		this.imgCount = 0;
 		this.noiseGeneratorSize = 1;
-
 		try {
 			const response = await fetch('/scrapeImages');
 			const images = await response.json();
-
-			//If API Call is successful, iteratively generate a room until the min. size is reached.
 			let grid = null;
 			do {
-				this.noiseGeneratorSize += 1;
+				this.noiseGeneratorSize++;
 				grid = new NoiseGenerator(
 					this.noiseGeneratorSize,
 					1 //Seed for Generation
 				).generateNoise_();
 			} while (!this.checkRoomCapacity(grid, images.length));
 			this.imgCount = await this.generateRoom_(grid, images);
-			console.log(this.imgCount, this.roomTiles, this.plaques);
 		} catch (e) {
 			console.error(e);
 		}
@@ -585,44 +556,36 @@ class GalerieApp {
 		const edgeTypes = ['tr', 'tl', 'br', 'bl'];
 		const uTypes = ['tu', 'bu', 'lu', 'ru'];
 
-		const texLoader = new THREE.TextureLoader();
-		texLoader.crossOrigin = 'Anonymous';
-
 		//Floor Texture + Mat
-		const floorTexture = new THREE.TextureLoader().load(
-			'/img/materials/carpet2.jpg'
-		);
+		const floorTexture = this.textureLoader.load('/img/materials/carpet2.jpg');
 		const floorMaterial = new THREE.MeshBasicMaterial({
 			map: floorTexture,
 		});
 		//Ceiling Texture + Mat
-		const ceilingTexture = new THREE.TextureLoader().load(
-			'/img/materials/ceiling.jpg'
-		);
+		const ceilingTexture = this.textureLoader.load('/img/materials/ceiling.jpg');
 		const ceilingMaterial = new THREE.MeshBasicMaterial({
 			map: ceilingTexture,
 		});
 		//Wall Texture + Mat
-		const wallTexture = new THREE.TextureLoader().load(
-			'/img/materials/wall1.png'
-		);
+		const wallTexture = this.textureLoader.load('/img/materials/wall1.png');
 		const wallMaterial = new THREE.MeshBasicMaterial({
 			map: wallTexture,
 		});
 		//Gallery Wall Texture + Mat
-		const galleryWallTexture = new THREE.TextureLoader().load(
+		const galleryWallTexture = this.textureLoader.load(
 			'/img/materials/gallerywall1.png'
 		);
 		const galleryWallMaterial = new THREE.MeshBasicMaterial({
 			map: galleryWallTexture,
 		});
-		//Plaque Texture + Mat
-		const plaqueTexture = new THREE.TextureLoader().load(
+		//Plaque Texture + Mat + Geometry
+		const plaqueTexture = this.textureLoader.load(
 			'/img/materials/artistplacat.png'
 		);
 		const plaqueMaterial = new THREE.MeshBasicMaterial({
 			map: plaqueTexture,
 		});
+		const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
 
 		// count number of floors etc. needed to create instanced meshes
 		let numFloors = 0;
@@ -669,7 +632,7 @@ class GalerieApp {
 			floorMesh.setMatrixAt(floorIndex++, mat);
 		};
 
-		// Floor mesh + placement function
+		// Ceiling mesh + placement function
 		const ceilingGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
 		const ceilingMesh = new THREE.InstancedMesh(
 			ceilingGeometry,
@@ -689,6 +652,8 @@ class GalerieApp {
 			);
 			ceilingMesh.setMatrixAt(ceilingIndex++, mat);
 		};
+
+		//Plaque Mesh + Placement function
 
 		// Gallery wall mesh + placement function
 		const galleryWallGeometry = new THREE.BoxGeometry(
@@ -866,7 +831,7 @@ class GalerieApp {
 					if (imageCount < images.length) {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						let canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = texLoader.load(
+						let imgTexture = this.textureLoader.load(
 							'/image-proxy?url=' + encodeURIComponent(images[imageCount].url)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
@@ -879,7 +844,6 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 + (wallDepth / 2 + 0.4)
 						);
-						const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
 						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
 						plaqueMesh.position.set(
 							0,
@@ -890,7 +854,6 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
-							plaquePos: plaqueMesh.position,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(plaqueMesh);
@@ -902,7 +865,7 @@ class GalerieApp {
 					if (imageCount < images.length) {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = texLoader.load(
+						let imgTexture = this.textureLoader.load(
 							'/image-proxy?url=' + encodeURIComponent(images[imageCount].url)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
@@ -915,7 +878,6 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - (wallDepth / 2 + 0.4)
 						);
-						const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
 						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
 						plaqueMesh.position.set(
 							0,
@@ -926,7 +888,6 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
-							plaquePos: plaqueMesh.position,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(plaqueMesh);
@@ -949,7 +910,7 @@ class GalerieApp {
 					if (imageCount < images.length) {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = texLoader.load(
+						let imgTexture = this.textureLoader.load(
 							'/image-proxy?url=' + encodeURIComponent(images[imageCount].url)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
@@ -962,7 +923,6 @@ class GalerieApp {
 							wallMesh.geometry.parameters.height * 0.42,
 							0 - boxWidth / 2 + 0.205
 						);
-						const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
 						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
 						plaqueMesh.position.set(
 							0,
@@ -973,7 +933,6 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
-							plaquePos: plaqueMesh.position,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(plaqueMesh);
@@ -1069,11 +1028,9 @@ class GalerieApp {
 	 * @property {string} model user chosen model
 	 * @property {string} name user chosen nickname
 	 */
-
 	updatePlayers() {
 		const game = this;
 		const serverPlayersIds = game.serverPlayers.map(player => player.id);
-
 		// Check for deleted local players
 		Object.keys(game.localPlayers).forEach(function (playerId) {
 			if (!serverPlayersIds.includes(playerId)) {
@@ -1102,7 +1059,6 @@ class GalerieApp {
 						data.name
 					) {
 						// Update dictionary
-						// console.log(data);
 						game.localPlayers[data.id].updatePosition(data);
 						console.log(`Player ${data.id} updated in local players`);
 					}
@@ -1135,7 +1091,8 @@ class GalerieApp {
 			if (foundElement && intersects[0].distance < 7.5) {
 				this.pictureLabel.position.copy(intersects[0].point);
 				this.pictureLabel.position.y -= 2;
-				this.pictureLabel.element.children[0].innerText = foundElement.title;
+				this.pictureLabel.element.children[0].innerText =
+					'"' + foundElement.title + '"';
 				this.pictureLabel.element.children[1].innerText = foundElement.author;
 				this.pictureLabel.visible = true;
 			}
@@ -1159,18 +1116,9 @@ class GalerieApp {
 		});
 
 		if (controls.isLocked === true) {
-			//raycaster.ray.origin.copy( controls.getObject().position );
-			//raycaster.ray.origin.y -= 10;
-
-			//const intersections = raycaster.intersectObjects( objects, false );
-
-			//const onObject = intersections.length > 0;
-
 			velocity.x -= velocity.x * 10.0 * delta;
 			velocity.z -= velocity.z * 10.0 * delta;
-
 			//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
-
 			direction.z = Number(moveForward) - Number(moveBackward);
 			direction.x = Number(moveRight) - Number(moveLeft);
 			direction.normalize(); // this ensures consistent movements in all directions
@@ -1179,16 +1127,12 @@ class GalerieApp {
 			if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
 
 			// if ( onObject === true ) {
-
 			// 	velocity.y = Math.max( 0, velocity.y );
 			// 	canJump = true;
-
 			// }
-
 			controls.moveRight(-velocity.x * delta);
 			controls.moveForward(-velocity.z * delta);
 		}
-
 		prevTime = time;
 	}
 
