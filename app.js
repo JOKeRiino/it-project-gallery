@@ -36,6 +36,7 @@ app.get('/avatars', (req, res) => {
 
 app.get('/scrapeImages', (req, res) => {
 	if (!fs.existsSync('imageData.json')) {
+		console.log("file doesn't exist");
 		getLatestImagesUrl().then(images => {
 			res.send(JSON.stringify(images));
 		});

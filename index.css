@@ -285,3 +285,24 @@ label {
 	width: 25px;
 	height: 25px;
 }
+
+.pictureLabel {
+	width: 10vw;
+	min-width: 250px;
+	max-width: 300px;
+	height: auto;
+	background-color: #fff;
+	padding: 1rem;
+}
+
+.pictureLabel h2 {
+	border-bottom: 2px solid black;
+	font-size: 1.2rem;
+	margin-bottom: 5px;
+}
+
+.pictureLabel h3 {
+	color: #757e87;
+	font-size: 1rem;
+	font-weight: normal;
+}

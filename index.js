@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import {
+	CSS2DRenderer,
+	CSS2DObject,
+} from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 //Internal Classes
@@ -146,8 +149,24 @@ class GalerieApp {
 			0.1,
 			1000
 		);
-
 		this.camera.rotation.order = 'YXZ';
+
+		this.rayCaster = new THREE.Raycaster();
+		this.screenCenter = new THREE.Vector2(
+			window.innerWidth / 2,
+			window.innerHeight / 2
+		);
+
+		this.pictureLabelElem = document.createElement('div');
+		let pictureLabelAuthor = document.createElement('h2');
+		let pictureLabelTitle = document.createElement('h3');
+		this.pictureLabelElem.className = 'pictureLabel';
+		this.pictureLabelElem.appendChild(pictureLabelAuthor);
+		this.pictureLabelElem.appendChild(pictureLabelTitle);
+		this.pictureLabel = new CSS2DObject(this.pictureLabelElem);
+		this.pictureLabel.position.set(0, 0, 0);
+		this.pictureLabel.visible = false;
+		this.scene.add(this.pictureLabel);
 
 		//Configuring Loading Manager for Loading Screen
 		THREE.Cache.enabled = true;
@@ -181,7 +200,15 @@ class GalerieApp {
 			this.cssRenderer.setSize(width, height);
 			this.camera.aspect = width / height;
 			this.camera.updateProjectionMatrix();
+			this.screenCenter.x = window.innerWidth / 2;
+			this.screenCenter.y = window.innerHeight / 2;
 		});
+
+		window.addEventListener(
+			'mousemove',
+			ev => this.checkIntersectionOnMouseMove(ev),
+			false
+		);
 	}
 
 	initializeAvatarPreview_(model) {
@@ -547,6 +574,7 @@ class GalerieApp {
 		// TODO: Separate Capacity counting from actual rendering!
 		let imageCount = 0;
 		this.plaques = [];
+		this.imageElements = [];
 
 		const boxWidth = 5;
 		const boxHeight = 0.2;
@@ -859,10 +887,12 @@ class GalerieApp {
 							0 + (wallDepth / 2 + 0.4)
 						);
 						this.plaques.push({
-							plaqueId: plaqueMesh.uuid,
+							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							plaquePos: plaqueMesh.position,
 						});
+						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
@@ -893,10 +923,12 @@ class GalerieApp {
 							0 - (wallDepth / 2 + 0.4)
 						);
 						this.plaques.push({
-							plaqueId: plaqueMesh.uuid,
+							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							plaquePos: plaqueMesh.position,
 						});
+						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
@@ -938,10 +970,12 @@ class GalerieApp {
 							0 - boxWidth / 2 + 0.1
 						);
 						this.plaques.push({
-							plaqueId: plaqueMesh.uuid,
+							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							plaquePos: plaqueMesh.position,
 						});
+						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
@@ -1085,6 +1119,29 @@ class GalerieApp {
 				}
 			}
 		);
+	}
+
+	checkIntersectionOnMouseMove(event) {
+		this.screenCenter.x = (window.innerWidth / 2 / window.innerWidth) * 2 - 1;
+		this.screenCenter.y = -(window.innerHeight / 2 / window.innerHeight) * 2 + 1;
+
+		this.rayCaster.setFromCamera(this.screenCenter, this.camera);
+		let intersects = this.rayCaster.intersectObjects(this.imageElements, false);
+
+		if (intersects.length > 0) {
+			let foundElement = this.plaques.find(
+				el => el.imageId === intersects[0].object.uuid
+			);
+			if (foundElement && intersects[0].distance < 7.5) {
+				this.pictureLabel.position.copy(intersects[0].point);
+				this.pictureLabel.position.y -= 2;
+				this.pictureLabel.element.children[0].innerText = foundElement.title;
+				this.pictureLabel.element.children[1].innerText = foundElement.author;
+				this.pictureLabel.visible = true;
+			}
+		} else {
+			this.pictureLabel.visible = false;
+		}
 	}
 
 	//Recursive UPDATE Loop
