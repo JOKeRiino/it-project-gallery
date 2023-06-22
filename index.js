@@ -16,6 +16,8 @@ const KEYS = {
 };
 
 async function getImgDimensions(img, canvasSize) {
+	const progressBar = document.getElementById('image-fetch-progress');
+
 	const proxyUrl = '/image-proxy?url=' + encodeURIComponent(img.url);
 	const [trueImageWidth, trueImageHeight] = await getImageSize(proxyUrl)
 		.then(([width, height]) => {
@@ -27,6 +29,7 @@ async function getImgDimensions(img, canvasSize) {
 				h = canvasSize;
 				w = canvasSize * (width / height);
 			}
+			progressBar.textContent = 'Fetching image... ' + img.url.split('/').at(-1);
 			return [w, h];
 		})
 		.catch(error => {
@@ -509,7 +512,7 @@ class GalerieApp {
 				).generateNoise_();
 			} while (!this.checkRoomCapacity(grid, images.length));
 			this.imgCount = await this.generateRoom_(grid, images);
-			console.log(this.imgCount, this.roomTiles);
+			console.log(this.imgCount, this.roomTiles, this.plaques);
 		} catch (e) {
 			console.error(e);
 		}
@@ -543,6 +546,7 @@ class GalerieApp {
 	async generateRoom_(matrix, images) {
 		// TODO: Separate Capacity counting from actual rendering!
 		let imageCount = 0;
+		this.plaques = [];
 
 		const boxWidth = 5;
 		const boxHeight = 0.2;
@@ -583,6 +587,13 @@ class GalerieApp {
 		);
 		const galleryWallMaterial = new THREE.MeshBasicMaterial({
 			map: galleryWallTexture,
+		});
+		//Plaque Texture + Mat
+		const plaqueTexture = new THREE.TextureLoader().load(
+			'/img/materials/artistplacat.png'
+		);
+		const plaqueMaterial = new THREE.MeshBasicMaterial({
+			map: plaqueTexture,
 		});
 
 		// count number of floors etc. needed to create instanced meshes
@@ -840,6 +851,19 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 + (wallDepth / 2 + 0.4)
 						);
+						const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
+						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+						plaqueMesh.position.set(
+							0,
+							galleryWallMesh.geometry.parameters.height * 0.15,
+							0 + (wallDepth / 2 + 0.4)
+						);
+						this.plaques.push({
+							plaqueId: plaqueMesh.uuid,
+							author: images[imageCount].author,
+							title: images[imageCount].title,
+						});
+						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -861,6 +885,19 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - (wallDepth / 2 + 0.4)
 						);
+						const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
+						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+						plaqueMesh.position.set(
+							0,
+							galleryWallMesh.geometry.parameters.height * 0.15,
+							0 - (wallDepth / 2 + 0.4)
+						);
+						this.plaques.push({
+							plaqueId: plaqueMesh.uuid,
+							author: images[imageCount].author,
+							title: images[imageCount].title,
+						});
+						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -893,6 +930,19 @@ class GalerieApp {
 							wallMesh.geometry.parameters.height * 0.42,
 							0 - boxWidth / 2 + 0.205
 						);
+						const plaqueGeometry = new THREE.BoxGeometry(1, 0.6, 0.05);
+						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+						plaqueMesh.position.set(
+							0,
+							wallMesh.geometry.parameters.height * 0.12,
+							0 - boxWidth / 2 + 0.1
+						);
+						this.plaques.push({
+							plaqueId: plaqueMesh.uuid,
+							author: images[imageCount].author,
+							title: images[imageCount].title,
+						});
+						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}

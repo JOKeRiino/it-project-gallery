@@ -77,6 +77,11 @@ canvas#main {
 	top: 45%;
 }
 
+#image-fetch-progress {
+	position: absolute;
+	top: 55%;
+}
+
 .loader {
 	width: 0;
 	max-width: 60vw;
