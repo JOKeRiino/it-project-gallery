@@ -77,6 +77,11 @@ canvas#main {
 	top: 45%;
 }
 
+#image-fetch-progress {
+	position: absolute;
+	top: 55%;
+}
+
 .loader {
 	width: 0;
 	max-width: 60vw;
@@ -279,4 +284,25 @@ label {
 	border-top-right-radius: 5%;
 	width: 25px;
 	height: 25px;
+}
+
+.pictureLabel {
+	width: 10vw;
+	min-width: 250px;
+	max-width: 300px;
+	height: auto;
+	background-color: #fff;
+	padding: 0.5rem 1rem;
+}
+
+.pictureLabel h2 {
+	border-bottom: 2px solid black;
+	font-size: 1.2rem;
+	margin-bottom: 5px;
+}
+
+.pictureLabel h3 {
+	color: #757e87;
+	font-size: 1rem;
+	font-weight: normal;
 }
