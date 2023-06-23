@@ -13,6 +13,16 @@ app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
 });
 
+app.get('/image-proxy', async (req, res) => {
+	const imageUrl = req.query.url;
+	const response = await axios.get(imageUrl, {
+		responseType: 'arraybuffer',
+	});
+
+	res.set('Content-Type', response.headers['content-type']);
+	res.send(response.data);
+});
+
 app.get('/avatars', (req, res) => {
 	let avail_avatars = fs.readdirSync(__dirname + '/img/models/avatars', {
 		withFileTypes: true,
@@ -26,7 +36,8 @@ app.get('/avatars', (req, res) => {
 
 app.get('/scrapeImages', (req, res) => {
 	if (!fs.existsSync('imageData.json')) {
-		scrapeData().then(images => {
+		console.log("file doesn't exist");
+		getLatestImagesUrl().then(images => {
 			res.send(JSON.stringify(images));
 		});
 	} else {
@@ -35,17 +46,36 @@ app.get('/scrapeImages', (req, res) => {
 	}
 });
 
-async function scrapeData() {
+async function getLatestImagesUrl() {
+	const { data } = await axios.get('http://digbb.informatik.fh-nuernberg.de/');
+	const $ = cheerio.load(data);
+	const matchingElements = $('.menu-item');
+	let found = false;
+	matchingElements.each((index, element) => {
+		if ($(element).children('a').text() === 'Wettbewerbe' && !found) {
+			found = true;
+			const listItems = $(element).children('ul').children('li');
+			const href = $(listItems[0]).children('a').attr('href').toString();
+			scrapeData(href);
+		}
+	});
+}
+
+async function scrapeData(url) {
 	console.log('Starting scraping....');
 	let images = [];
-	for (let i = 1; i <= 8; i++) {
-		const url = `http://digbb.informatik.fh-nuernberg.de/best-five-2022-23/page/${i}/`;
-		const { data } = await axios.get(url);
+	let count = 0;
+
+	let pageElements;
+	do {
+		count++;
+		let pagination = `page/${count}/`;
+		const { data } = await axios.get(url + pagination);
 		const $ = cheerio.load(data);
 		pageElements = $('.pcdesktop');
-
+		//console.log(url + pagination);
 		pageElements.each((idx, el) => {
-			console.log('Page ' + i + ' of 8. Scraping element ' + idx);
+			//console.log('Page ' + count + ' of 8. Scraping element ' + idx);
 			let metaData = $(el)
 				.children('.gallery-title-autor')
 				.children('.author')
@@ -54,7 +84,7 @@ async function scrapeData() {
 
 			if (metaData.length > 1) {
 				let img = {
-					img: $(el)
+					url: $(el)
 						.children('.imagebox')
 						.children('a')
 						.children('img')
@@ -67,7 +97,7 @@ async function scrapeData() {
 				images.push(img);
 			}
 		});
-	}
+	} while (pageElements.length > 0);
 
 	fs.writeFile('imageData.json', JSON.stringify(images, null, 2), err => {
 		if (err) {
@@ -76,6 +106,8 @@ async function scrapeData() {
 		}
 		console.log('File created successfully');
 	});
+
+	console.log(images.length);
 
 	return images;
 }
