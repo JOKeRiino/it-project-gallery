@@ -86,9 +86,12 @@ async function scrapeData(url) {
 				.children('.gallery-title-autor')
 				.children('.author')
 				.attr('title')
-				.split('-');
 
-			if (metaData.length > 1) {
+			let i = metaData.lastIndexOf('-')
+			let author = metaData.substring(i + 1)
+			let title = metaData.substring(0,i)
+
+			if (metaData && metaData.includes('-')) {
 				let img = {
 					url: $(el)
 						.children('.imagebox')
@@ -96,8 +99,8 @@ async function scrapeData(url) {
 						.children('img')
 						.attr('src')
 						.replace('-350x350', ''),
-					author: metaData[1].trim(),
-					title: metaData[0].trim(),
+					author: author.trim(),
+					title: title.trim(),
 				};
 
 				images.push(img);
