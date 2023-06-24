@@ -13,21 +13,17 @@ app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
 });
 
-// app.get('/image-proxy', async (req, res) => {
-// 	const imageUrl = req.query.url;
-	
-// 	const response = await axios.get(imageUrl, {
-// 		responseType: 'arraybuffer',
-// 	});
-// 	axios(imageUrl).
-
-// 	res.set('Content-Type', response.headers['content-type']);
-// 	res.send(response.data);
-// });
-
-app.use('/image-proxy', proxy('http://digbb.informatik.fh-nuernberg.de',{
-	}
-}))
+app.use(
+	'/image-proxy',
+	proxy('http://digbb.informatik.fh-nuernberg.de', {
+		userResHeaderDecorator(digbb_headers) {
+			// advise browser to not request etag in a day --> speed up loading
+			result = Object.assign({}, digbb_headers);
+			result['cache-control'] = 'max-age=86400; immutable';
+			return result;
+		},
+	})
+);
 
 app.get('/avatars', (req, res) => {
 	let avail_avatars = fs.readdirSync(__dirname + '/img/models/avatars', {
@@ -41,13 +37,30 @@ app.get('/avatars', (req, res) => {
 });
 
 app.get('/scrapeImages', (req, res) => {
-	if (!fs.existsSync('imageData.json')) {
-		console.log("file doesn't exist");
-		getLatestImagesUrl().then(images => {
-			res.send(JSON.stringify(images));
-		});
+	const exists = fs.existsSync('imageData.json');
+	const last_mod = exists
+		? fs.statSync('imageData.json').mtime
+		: new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0));
+	const GRACE_PERIOD = 24 * 60 * 60 * 1000; // 1 day
+
+	// client-side caching of response the same time the server caches the results.
+
+	// rescrape if data file not recently modified, something may have changed
+	if (!exists || Date.now() - last_mod > GRACE_PERIOD) {
+		console.log("file doesn't exist or wasn't modified recently.");
+		getLatestImagesUrl()
+			.then(images => {
+				res
+					.header('Expires', new Date(Date.now() + GRACE_PERIOD).toUTCString())
+					.send(JSON.stringify(images));
+			})
+			.catch(err => {
+				console.log(err);
+				res.status(502).send();
+			});
 	} else {
 		console.log('file exists');
+		res.header('Expires', new Date(last_mod + GRACE_PERIOD).toUTCString());
 		res.send(JSON.parse(fs.readFileSync('imageData.json')));
 	}
 });
@@ -56,15 +69,16 @@ async function getLatestImagesUrl() {
 	const { data } = await axios.get('http://digbb.informatik.fh-nuernberg.de/');
 	const $ = cheerio.load(data);
 	const matchingElements = $('.menu-item');
-	let found = false;
+	let found = null;
 	matchingElements.each((index, element) => {
-		if ($(element).children('a').text() === 'Wettbewerbe' && !found) {
-			found = true;
+		if ($(element).children('a').text() === 'Wettbewerbe') {
 			const listItems = $(element).children('ul').children('li');
 			const href = $(listItems[0]).children('a').attr('href').toString();
-			scrapeData(href);
+			found = scrapeData(href);
+			return false;
 		}
 	});
+	return found;
 }
 
 async function scrapeData(url) {
@@ -85,11 +99,11 @@ async function scrapeData(url) {
 			let metaData = $(el)
 				.children('.gallery-title-autor')
 				.children('.author')
-				.attr('title')
+				.attr('title');
 
-			let i = metaData.lastIndexOf('-')
-			let author = metaData.substring(i + 1)
-			let title = metaData.substring(0,i)
+			let i = metaData.lastIndexOf('-');
+			let author = metaData.substring(i + 1);
+			let title = metaData.substring(0, i);
 
 			if (metaData && metaData.includes('-')) {
 				let img = {
