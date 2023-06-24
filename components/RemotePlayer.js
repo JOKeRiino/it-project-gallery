@@ -89,6 +89,7 @@ export class RemotePlayer extends Player {
 				this.model.add(this.nameTag);
 				//this.model = model;
 				this.game.scene.add(this.model);
+				this.model.layers.enable(3)
 				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
 				this.model.rotation.order = 'YXZ';
 				//this.model.rotation.x = startingPosition.rx;

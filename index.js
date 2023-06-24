@@ -11,17 +11,13 @@ import { NoiseGenerator } from './components/NoiseGenerator.js';
 import { RemotePlayer } from './components/RemotePlayer.js';
 import { LocalPlayer } from './components/LocalPlayer.js';
 
-const KEYS = {
-	a: 65,
-	s: 83,
-	w: 87,
-	d: 68,
-};
-
 async function getImgDimensions(img, canvasSize) {
 	const progressBar = document.getElementById('image-fetch-progress');
 
-	const proxyUrl = img.url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+	const proxyUrl = img.url.replace(
+		'http://digbb.informatik.fh-nuernberg.de',
+		'/image-proxy'
+	);
 	const [trueImageWidth, trueImageHeight] = await getImageSize(proxyUrl)
 		.then(([width, height]) => {
 			let w, h;
@@ -131,6 +127,7 @@ class GalerieApp {
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('main'),
 		});
+		window.renderer = this.renderer;
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
@@ -148,6 +145,7 @@ class GalerieApp {
 			0.1,
 			1000
 		);
+		this.camera.layers.enableAll();
 		this.camera.rotation.order = 'YXZ';
 
 		this.camera.position.set(
@@ -161,12 +159,21 @@ class GalerieApp {
 			this.startingPosition.rotation.z
 		);
 
-		this.screenCenter = new THREE.Vector2(
-			window.innerWidth / 2,
-			window.innerHeight / 2
-		);
+		this.screenCenter = new THREE.Vector2(0, 0);
 
-		this.rayCaster = new THREE.Raycaster();
+		this.rayCaster = new THREE.Raycaster(undefined, undefined, undefined, 7.5);
+
+		/**
+		 * Filtering via Layers:
+		 * - Layer 0: Everything
+		 * - Layer 1: All Room Tiles (excluding the pictures)
+		 * - Layer 2: The Pictures
+		 * - Layer 3: Other Players
+		 * - Layer 4 to 31: Nothing
+		 */
+
+		this.rayCaster.layers.set(2);
+		this.rayCaster.layers.enable(1);
 
 		this.pictureLabelElem = document.createElement('div');
 		let pictureLabelAuthor = document.createElement('h2');
@@ -200,8 +207,6 @@ class GalerieApp {
 			this.cssRenderer.setSize(width, height);
 			this.camera.aspect = width / height;
 			this.camera.updateProjectionMatrix();
-			this.screenCenter.x = window.innerWidth / 2;
-			this.screenCenter.y = window.innerHeight / 2;
 		});
 
 		window.addEventListener(
@@ -212,9 +217,6 @@ class GalerieApp {
 	}
 
 	initializeAvatarPreview_(model) {
-		//console.debug(model);
-		const width = window.innerWidth / 10;
-		const height = window.innerHeight / 5;
 		let scene = new THREE.Scene();
 		let light = new THREE.AmbientLight('white');
 		scene.add(light);
@@ -516,6 +518,7 @@ class GalerieApp {
 		}
 
 		this.roomTiles.forEach(r => {
+			if (r.name === 'plaque') console.debug(r);
 			this.scene.add(r);
 		});
 	}
@@ -542,7 +545,6 @@ class GalerieApp {
 	 * @param {Array<ImageInfo>} images
 	 */
 	async generateRoom_(matrix, images) {
-		// TODO: Separate Capacity counting from actual rendering!
 		let imageCount = 0;
 		this.plaques = [];
 		this.imageElements = [];
@@ -618,6 +620,7 @@ class GalerieApp {
 			floorMaterial,
 			numFloors
 		);
+		floorMesh.layers.enable(1);
 		floorMesh.name = 'floor';
 		floorMesh.receiveShadow = true;
 		this.roomTiles.push(floorMesh);
@@ -639,6 +642,7 @@ class GalerieApp {
 			ceilingMaterial,
 			numFloors
 		);
+		ceilingMesh.layers.enable(1);
 		ceilingMesh.name = 'ceiling';
 		ceilingMesh.receiveShadow = true;
 		this.roomTiles.push(ceilingMesh);
@@ -654,6 +658,70 @@ class GalerieApp {
 		};
 
 		//Plaque Mesh + Placement function
+		const plaqueMesh = new THREE.InstancedMesh(
+			plaqueGeometry,
+			plaqueMaterial,
+			images.length
+		);
+		plaqueMesh.layers.enable(1);
+		plaqueMesh.name = 'plaque';
+		this.roomTiles.push(plaqueMesh);
+		let plaqueIndex = 0;
+
+		const placePlaque = (x, y, edgeType) => {
+			let mat = new THREE.Matrix4();
+			//ROTATION
+			switch (edgeType) {
+				case 'p1':
+					mat.setPosition(
+						x * boxWidth,
+						galleryWallMesh.geometry.parameters.height * 0.15,
+						y * boxWidth + (wallDepth / 2 + 0.4)
+					);
+					break;
+				case 'p2':
+					mat.setPosition(
+						x * boxWidth,
+						galleryWallMesh.geometry.parameters.height * 0.15,
+						y * boxWidth - (wallDepth / 2 + 0.4)
+					);
+					break;
+				case 'lw':
+					//TODO
+					mat.makeRotationY(Math.PI / 2);
+					mat.setPosition(
+						x * boxWidth - boxWidth / 2 + 0.1,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth
+					);
+					break;
+				case 'rw':
+					//TODO
+					mat.makeRotationY(Math.PI / 2);
+					mat.setPosition(
+						x * boxWidth + boxWidth / 2 - 0.1,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth
+					);
+					break;
+				case 'tw':
+					mat.setPosition(
+						x * boxWidth,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth - boxWidth / 2 + 0.1
+					);
+					break;
+				case 'bw':
+					//todo adapt
+					mat.setPosition(
+						x * boxWidth,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth + boxWidth / 2 - 0.1
+					);
+					break;
+			}
+			plaqueMesh.setMatrixAt(plaqueIndex++, mat);
+		};
 
 		// Gallery wall mesh + placement function
 		const galleryWallGeometry = new THREE.BoxGeometry(
@@ -666,6 +734,7 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
+		galleryWallMesh.layers.enable(1);
 		galleryWallMesh.name = 'galleryWall';
 		this.roomTiles.push(galleryWallMesh);
 		let galleryWallIndex = 0;
@@ -689,6 +758,7 @@ class GalerieApp {
 			_origMesh.material,
 			numEdges
 		);
+		chairMesh.layers.enable(1);
 		chairMesh.name = 'chair';
 
 		const placeChair = (x, y, edgeType) => {
@@ -741,6 +811,8 @@ class GalerieApp {
 			_origPltMesh2.material,
 			numEdges
 		);
+		plantMesh1.layers.enable(1);
+		plantMesh2.layers.enable(1);
 		plantMesh1.name = 'plant_1';
 		plantMesh2.name = 'plant_2';
 
@@ -769,6 +841,7 @@ class GalerieApp {
 			wallMaterial,
 			numOuterWalls
 		);
+		wallMesh.layers.enable(1);
 		wallMesh.name = 'outerWall';
 		this.roomTiles.push(wallMesh);
 		let outerWallIndex = 0;
@@ -832,7 +905,10 @@ class GalerieApp {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						let canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = this.textureLoader.load(
-							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+							images[imageCount].url.replace(
+								'http://digbb.informatik.fh-nuernberg.de',
+								'/image-proxy'
+							)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -844,19 +920,21 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 + (wallDepth / 2 + 0.4)
 						);
-						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						plaqueMesh.position.set(
-							0,
-							galleryWallMesh.geometry.parameters.height * 0.15,
-							0 + (wallDepth / 2 + 0.4)
-						);
+						canvasMesh.layers.enable(2);
+						placePlaque(x, y, 'p1');
+						// const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+						// plaqueMesh.position.set(
+						// 	0,
+						// 	galleryWallMesh.geometry.parameters.height * 0.15,
+						// 	0 + (wallDepth / 2 + 0.4)
+						// );
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						oneWallGroup.add(plaqueMesh);
+						//oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -866,7 +944,10 @@ class GalerieApp {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = this.textureLoader.load(
-							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+							images[imageCount].url.replace(
+								'http://digbb.informatik.fh-nuernberg.de',
+								'/image-proxy'
+							)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -878,18 +959,21 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - (wallDepth / 2 + 0.4)
 						);
-						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						plaqueMesh.position.set(
-							galleryWallMesh.geometry.parameters.height * 0.15,
-							0 - (wallDepth / 2 + 0.4)
-						);
+						canvasMesh.layers.enable(2);
+						placePlaque(x, y, 'p2');
+						// const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+						// plaqueMesh.position.set(
+						// 	0,
+						// 	galleryWallMesh.geometry.parameters.height * 0.15,
+						// 	0 - (wallDepth / 2 + 0.4)
+						// );
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						oneWallGroup.add(plaqueMesh);
+						//oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -910,7 +994,10 @@ class GalerieApp {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = this.textureLoader.load(
-							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+							images[imageCount].url.replace(
+								'http://digbb.informatik.fh-nuernberg.de',
+								'/image-proxy'
+							)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -922,19 +1009,21 @@ class GalerieApp {
 							wallMesh.geometry.parameters.height * 0.42,
 							0 - boxWidth / 2 + 0.205
 						);
-						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						plaqueMesh.position.set(
-							0,
-							wallMesh.geometry.parameters.height * 0.12,
-							0 - boxWidth / 2 + 0.1
-						);
+						canvasMesh.layers.enable(2);
+						placePlaque(x, y, matrix[y][x]);
+						// const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
+						// plaqueMesh.position.set(
+						// 	0,
+						// 	wallMesh.geometry.parameters.height * 0.12,
+						// 	0 - boxWidth / 2 + 0.1
+						// );
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						oneWallGroup.add(plaqueMesh);
+						//oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -1012,6 +1101,7 @@ class GalerieApp {
 		chairMesh.count = chairIndex;
 		plantMesh1.count = plantIndex;
 		plantMesh2.count = plantIndex;
+		ceilingMesh.count = ceilingIndex;
 		return imageCount;
 	}
 
@@ -1077,17 +1167,16 @@ class GalerieApp {
 	}
 
 	checkIntersectionOnMouseMove(event) {
-		this.screenCenter.x = (window.innerWidth / 2 / window.innerWidth) * 2 - 1;
-		this.screenCenter.y = -(window.innerHeight / 2 / window.innerHeight) * 2 + 1;
-
 		this.rayCaster.setFromCamera(this.screenCenter, this.camera);
-		let intersects = this.rayCaster.intersectObjects(this.imageElements, false);
+
+		let intersects = this.rayCaster.intersectObjects(this.scene.children, true);
 
 		if (intersects.length > 0) {
+			//console.debug(intersects)
 			let foundElement = this.plaques.find(
 				el => el.imageId === intersects[0].object.uuid
 			);
-			if (foundElement && intersects[0].distance < 7.5) {
+			if (foundElement) {
 				this.pictureLabel.position.copy(intersects[0].point);
 				this.pictureLabel.position.y -= 2;
 				this.pictureLabel.element.children[0].innerText =
