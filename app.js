@@ -1,27 +1,33 @@
 const express = require('express');
 const app = express();
-const _hserver = require('http').Server;
-const http = new _hserver(app);
+const http = require('http').createServer(app);
 const sio = require('socket.io');
 const io = new sio.Server(http);
 const fs = require('fs');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const proxy = require('express-http-proxy');
 
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/image-proxy', async (req, res) => {
-	const imageUrl = req.query.url;
-	const response = await axios.get(imageUrl, {
-		responseType: 'arraybuffer',
-	});
+// app.get('/image-proxy', async (req, res) => {
+// 	const imageUrl = req.query.url;
+	
+// 	const response = await axios.get(imageUrl, {
+// 		responseType: 'arraybuffer',
+// 	});
+// 	axios(imageUrl).
 
-	res.set('Content-Type', response.headers['content-type']);
-	res.send(response.data);
-});
+// 	res.set('Content-Type', response.headers['content-type']);
+// 	res.send(response.data);
+// });
+
+app.use('/image-proxy', proxy('http://digbb.informatik.fh-nuernberg.de',{
+	}
+}))
 
 app.get('/avatars', (req, res) => {
 	let avail_avatars = fs.readdirSync(__dirname + '/img/models/avatars', {

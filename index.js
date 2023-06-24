@@ -21,7 +21,7 @@ const KEYS = {
 async function getImgDimensions(img, canvasSize) {
 	const progressBar = document.getElementById('image-fetch-progress');
 
-	const proxyUrl = '/image-proxy?url=' + encodeURIComponent(img.url);
+	const proxyUrl = img.url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
 	const [trueImageWidth, trueImageHeight] = await getImageSize(proxyUrl)
 		.then(([width, height]) => {
 			let w, h;
@@ -832,7 +832,7 @@ class GalerieApp {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						let canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = this.textureLoader.load(
-							'/image-proxy?url=' + encodeURIComponent(images[imageCount].url)
+							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -866,7 +866,7 @@ class GalerieApp {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = this.textureLoader.load(
-							'/image-proxy?url=' + encodeURIComponent(images[imageCount].url)
+							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -880,7 +880,6 @@ class GalerieApp {
 						);
 						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
 						plaqueMesh.position.set(
-							0,
 							galleryWallMesh.geometry.parameters.height * 0.15,
 							0 - (wallDepth / 2 + 0.4)
 						);
@@ -911,7 +910,7 @@ class GalerieApp {
 						const dims = await getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
 						let imgTexture = this.textureLoader.load(
-							'/image-proxy?url=' + encodeURIComponent(images[imageCount].url)
+							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
