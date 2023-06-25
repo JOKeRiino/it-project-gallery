@@ -11,42 +11,16 @@ import { NoiseGenerator } from './components/NoiseGenerator.js';
 import { RemotePlayer } from './components/RemotePlayer.js';
 import { LocalPlayer } from './components/LocalPlayer.js';
 
-async function getImgDimensions(img, canvasSize) {
-	const progressBar = document.getElementById('image-fetch-progress');
-
-	const proxyUrl = img.url.replace(
-		'http://digbb.informatik.fh-nuernberg.de',
-		'/image-proxy'
-	);
-	const [trueImageWidth, trueImageHeight] = await getImageSize(proxyUrl)
-		.then(([width, height]) => {
-			let w, h;
-			if (width > height) {
-				w = canvasSize;
-				h = canvasSize * (height / width);
-			} else {
-				h = canvasSize;
-				w = canvasSize * (width / height);
-			}
-			progressBar.textContent = 'Fetching image... ' + img.url.split('/').at(-1);
-			return [w, h];
-		})
-		.catch(error => {
-			console.error('Error:', error);
-		});
-	return [trueImageWidth, trueImageHeight];
-}
-
-function getImageSize(url) {
-	return new Promise(resolve => {
-		const image = new Image();
-		image.onload = function () {
-			const trueImageWidth = this.width;
-			const trueImageHeight = this.height;
-			resolve([trueImageWidth, trueImageHeight]);
-		};
-		image.src = url;
-	});
+function getImgDimensions(img, canvasSize) {
+	let w, h;
+	if (img.width > img.height) {
+		w = canvasSize;
+		h = canvasSize * (img.height / img.width);
+	} else {
+		h = canvasSize;
+		w = canvasSize * (img.width / img.height);
+	}
+	return [w, h];
 }
 
 const blocker = document.getElementById('blocker');
@@ -188,10 +162,12 @@ class GalerieApp {
 
 		//Configuring Loading Manager for Loading Screen
 		THREE.Cache.enabled = true;
+		const progressBar = document.getElementById('image-fetch-progress');
 		this.loadingManager = new THREE.LoadingManager();
 		let loader = document.getElementById('loader');
 		this.loadingManager.onProgress = (url, loaded, total) => {
 			loader.style.width = (loaded / total) * 100 + '%';
+			progressBar.textContent = 'Loaded ' + url.split('/').at(-1);
 		};
 		this.gltfLoader = new GLTFLoader(this.loadingManager);
 		this.fbxLoader = new FBXLoader(this.loadingManager);
@@ -557,31 +533,32 @@ class GalerieApp {
 		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
 		const edgeTypes = ['tr', 'tl', 'br', 'bl'];
 		const uTypes = ['tu', 'bu', 'lu', 'ru'];
+		const loadingPromises = []
 
 		//Floor Texture + Mat
-		const floorTexture = this.textureLoader.load('/img/materials/carpet2.jpg');
+		const floorTexture = await this.textureLoader.loadAsync('/img/materials/carpet2.jpg');
 		const floorMaterial = new THREE.MeshBasicMaterial({
 			map: floorTexture,
 		});
 		//Ceiling Texture + Mat
-		const ceilingTexture = this.textureLoader.load('/img/materials/ceiling.jpg');
+		const ceilingTexture = await this.textureLoader.loadAsync('/img/materials/ceiling.jpg');
 		const ceilingMaterial = new THREE.MeshBasicMaterial({
 			map: ceilingTexture,
 		});
 		//Wall Texture + Mat
-		const wallTexture = this.textureLoader.load('/img/materials/wall1.png');
+		const wallTexture = await this.textureLoader.loadAsync('/img/materials/wall1.png');
 		const wallMaterial = new THREE.MeshBasicMaterial({
 			map: wallTexture,
 		});
 		//Gallery Wall Texture + Mat
-		const galleryWallTexture = this.textureLoader.load(
+		const galleryWallTexture = await this.textureLoader.loadAsync(
 			'/img/materials/gallerywall1.png'
 		);
 		const galleryWallMaterial = new THREE.MeshBasicMaterial({
 			map: galleryWallTexture,
 		});
 		//Plaque Texture + Mat + Geometry
-		const plaqueTexture = this.textureLoader.load(
+		const plaqueTexture = await this.textureLoader.loadAsync(
 			'/img/materials/artistplacat.png'
 		);
 		const plaqueMaterial = new THREE.MeshBasicMaterial({
@@ -687,7 +664,6 @@ class GalerieApp {
 					);
 					break;
 				case 'lw':
-					//TODO
 					mat.makeRotationY(Math.PI / 2);
 					mat.setPosition(
 						x * boxWidth - boxWidth / 2 + 0.1,
@@ -696,7 +672,6 @@ class GalerieApp {
 					);
 					break;
 				case 'rw':
-					//TODO
 					mat.makeRotationY(Math.PI / 2);
 					mat.setPosition(
 						x * boxWidth + boxWidth / 2 - 0.1,
@@ -712,7 +687,6 @@ class GalerieApp {
 					);
 					break;
 				case 'bw':
-					//todo adapt
 					mat.setPosition(
 						x * boxWidth,
 						wallMesh.geometry.parameters.height * 0.12,
@@ -902,48 +876,42 @@ class GalerieApp {
 					// Add one image to every side of the concrete wall!
 					//Image Canvas First Side
 					if (imageCount < images.length) {
-						const dims = await getImgDimensions(images[imageCount], 4);
+						const dims = getImgDimensions(images[imageCount], 4);
 						let canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = this.textureLoader.load(
+						loadingPromises.push(this.textureLoader.loadAsync(
 							images[imageCount].url.replace(
 								'http://digbb.informatik.fh-nuernberg.de',
 								'/image-proxy'
 							)
-						);
-						const canvasMaterial = new THREE.MeshBasicMaterial({
-							map: imgTexture,
-							side: THREE.FrontSide,
-						});
-						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
-						canvasMesh.position.set(
-							0,
-							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
-							0 + (wallDepth / 2 + 0.4)
-						);
-						canvasMesh.layers.enable(2);
+						).then((imgTexture)=>{
+							const canvasMaterial = new THREE.MeshBasicMaterial({
+								map: imgTexture,
+								side: THREE.FrontSide,
+							});
+							const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+							canvasMesh.position.set(
+								0,
+								galleryWallMesh.geometry.parameters.height / 2 + 0.3,
+								0 + (wallDepth / 2 + 0.4)
+							);
+							canvasMesh.layers.enable(2);
+							this.imageElements.push(canvasMesh);
+							this.plaques.push({
+								imageId: canvasMesh.uuid,
+								author: images[imageCount].author,
+								title: images[imageCount].title,
+							});
+							oneWallGroup.add(canvasMesh);
+						}));
 						placePlaque(x, y, 'p1');
-						// const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						// plaqueMesh.position.set(
-						// 	0,
-						// 	galleryWallMesh.geometry.parameters.height * 0.15,
-						// 	0 + (wallDepth / 2 + 0.4)
-						// );
-						this.plaques.push({
-							imageId: canvasMesh.uuid,
-							author: images[imageCount].author,
-							title: images[imageCount].title,
-						});
-						this.imageElements.push(canvasMesh);
-						//oneWallGroup.add(plaqueMesh);
-						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
 
 					//Image Canvas Second Side
 					if (imageCount < images.length) {
-						const dims = await getImgDimensions(images[imageCount], 4);
+						const dims = getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = this.textureLoader.load(
+						let imgTexture = await this.textureLoader.loadAsync(
 							images[imageCount].url.replace(
 								'http://digbb.informatik.fh-nuernberg.de',
 								'/image-proxy'
@@ -961,19 +929,12 @@ class GalerieApp {
 						);
 						canvasMesh.layers.enable(2);
 						placePlaque(x, y, 'p2');
-						// const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						// plaqueMesh.position.set(
-						// 	0,
-						// 	galleryWallMesh.geometry.parameters.height * 0.15,
-						// 	0 - (wallDepth / 2 + 0.4)
-						// );
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						//oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -991,9 +952,9 @@ class GalerieApp {
 					placeOuterWall(x, y, matrix[y][x][0]);
 					//Image Canvas
 					if (imageCount < images.length) {
-						const dims = await getImgDimensions(images[imageCount], 4);
+						const dims = getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = this.textureLoader.load(
+						let imgTexture = await this.textureLoader.loadAsync(
 							images[imageCount].url.replace(
 								'http://digbb.informatik.fh-nuernberg.de',
 								'/image-proxy'
@@ -1011,19 +972,13 @@ class GalerieApp {
 						);
 						canvasMesh.layers.enable(2);
 						placePlaque(x, y, matrix[y][x]);
-						// const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						// plaqueMesh.position.set(
-						// 	0,
-						// 	wallMesh.geometry.parameters.height * 0.12,
-						// 	0 - boxWidth / 2 + 0.1
-						// );
+
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						//oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -1191,37 +1146,35 @@ class GalerieApp {
 
 	//Recursive UPDATE Loop
 	renderAnimationFrame_() {
-		const time = performance.now();
-		const delta = (time - prevTime) / 1000;
-		requestAnimationFrame(f => {
-			this.renderer.render(this.scene, this.camera);
-			this.cssRenderer.render(this.scene, this.camera);
+		this.renderer.setAnimationLoop(time => {
+			const delta = (time - prevTime) / 1000;
 			this.updatePlayers();
 			Object.values(this.localPlayers).forEach(p => {
 				p.anims?.update(delta);
 			});
-			this.renderAnimationFrame_();
+
+			if (controls.isLocked === true) {
+				velocity.x -= velocity.x * 10.0 * delta;
+				velocity.z -= velocity.z * 10.0 * delta;
+				//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
+				direction.z = Number(moveForward) - Number(moveBackward);
+				direction.x = Number(moveRight) - Number(moveLeft);
+				direction.normalize(); // this ensures consistent movements in all directions
+
+				if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
+				if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
+
+				// if ( onObject === true ) {
+				// 	velocity.y = Math.max( 0, velocity.y );
+				// 	canJump = true;
+				// }
+				controls.moveRight(-velocity.x * delta);
+				controls.moveForward(-velocity.z * delta);
+			}
+			this.renderer.render(this.scene, this.camera);
+			this.cssRenderer.render(this.scene, this.camera);
+			prevTime = time;
 		});
-
-		if (controls.isLocked === true) {
-			velocity.x -= velocity.x * 10.0 * delta;
-			velocity.z -= velocity.z * 10.0 * delta;
-			//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
-			direction.z = Number(moveForward) - Number(moveBackward);
-			direction.x = Number(moveRight) - Number(moveLeft);
-			direction.normalize(); // this ensures consistent movements in all directions
-
-			if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
-			if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
-
-			// if ( onObject === true ) {
-			// 	velocity.y = Math.max( 0, velocity.y );
-			// 	canJump = true;
-			// }
-			controls.moveRight(-velocity.x * delta);
-			controls.moveForward(-velocity.z * delta);
-		}
-		prevTime = time;
 	}
 
 	//FPS and RAM stats
