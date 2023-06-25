@@ -100,6 +100,7 @@ class GalerieApp {
 	initializeRenderer_() {
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('main'),
+			antialias: true,
 		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
