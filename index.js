@@ -101,7 +101,6 @@ class GalerieApp {
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('main'),
 		});
-		window.renderer = this.renderer;
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
@@ -533,20 +532,25 @@ class GalerieApp {
 		const wallTypes = ['tw', 'lw', 'rw', 'bw'];
 		const edgeTypes = ['tr', 'tl', 'br', 'bl'];
 		const uTypes = ['tu', 'bu', 'lu', 'ru'];
-		const loadingPromises = []
 
 		//Floor Texture + Mat
-		const floorTexture = await this.textureLoader.loadAsync('/img/materials/carpet2.jpg');
+		const floorTexture = await this.textureLoader.loadAsync(
+			'/img/materials/carpet2.jpg'
+		);
 		const floorMaterial = new THREE.MeshBasicMaterial({
 			map: floorTexture,
 		});
 		//Ceiling Texture + Mat
-		const ceilingTexture = await this.textureLoader.loadAsync('/img/materials/ceiling.jpg');
+		const ceilingTexture = await this.textureLoader.loadAsync(
+			'/img/materials/ceiling.jpg'
+		);
 		const ceilingMaterial = new THREE.MeshBasicMaterial({
 			map: ceilingTexture,
 		});
 		//Wall Texture + Mat
-		const wallTexture = await this.textureLoader.loadAsync('/img/materials/wall1.png');
+		const wallTexture = await this.textureLoader.loadAsync(
+			'/img/materials/wall1.png'
+		);
 		const wallMaterial = new THREE.MeshBasicMaterial({
 			map: wallTexture,
 		});
@@ -878,31 +882,31 @@ class GalerieApp {
 					if (imageCount < images.length) {
 						const dims = getImgDimensions(images[imageCount], 4);
 						let canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						loadingPromises.push(this.textureLoader.loadAsync(
+						let imgTexture = await this.textureLoader.loadAsync(
 							images[imageCount].url.replace(
 								'http://digbb.informatik.fh-nuernberg.de',
 								'/image-proxy'
 							)
-						).then((imgTexture)=>{
-							const canvasMaterial = new THREE.MeshBasicMaterial({
-								map: imgTexture,
-								side: THREE.FrontSide,
-							});
-							const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
-							canvasMesh.position.set(
-								0,
-								galleryWallMesh.geometry.parameters.height / 2 + 0.3,
-								0 + (wallDepth / 2 + 0.4)
-							);
-							canvasMesh.layers.enable(2);
-							this.imageElements.push(canvasMesh);
-							this.plaques.push({
-								imageId: canvasMesh.uuid,
-								author: images[imageCount].author,
-								title: images[imageCount].title,
-							});
-							oneWallGroup.add(canvasMesh);
-						}));
+						);
+						const canvasMaterial = new THREE.MeshBasicMaterial({
+							map: imgTexture,
+							side: THREE.FrontSide,
+						});
+						const canvasMesh = new THREE.Mesh(canvasGeometry, canvasMaterial);
+						canvasMesh.position.set(
+							0,
+							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
+							0 + (wallDepth / 2 + 0.4)
+						);
+						canvasMesh.layers.enable(2);
+						canvasMesh.name = images[imageCount].title;
+						this.imageElements.push(canvasMesh);
+						this.plaques.push({
+							imageId: canvasMesh.uuid,
+							author: images[imageCount].author,
+							title: images[imageCount].title,
+						});
+						oneWallGroup.add(canvasMesh);
 						placePlaque(x, y, 'p1');
 						imageCount++;
 					}
@@ -928,6 +932,7 @@ class GalerieApp {
 							0 - (wallDepth / 2 + 0.4)
 						);
 						canvasMesh.layers.enable(2);
+						canvasMesh.name = images[imageCount].title;
 						placePlaque(x, y, 'p2');
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
@@ -971,6 +976,7 @@ class GalerieApp {
 							0 - boxWidth / 2 + 0.205
 						);
 						canvasMesh.layers.enable(2);
+						canvasMesh.name = images[imageCount].title;
 						placePlaque(x, y, matrix[y][x]);
 
 						this.plaques.push({
@@ -1127,7 +1133,7 @@ class GalerieApp {
 		let intersects = this.rayCaster.intersectObjects(this.scene.children, true);
 
 		if (intersects.length > 0) {
-			//console.debug(intersects)
+			//console.debug(intersects);
 			let foundElement = this.plaques.find(
 				el => el.imageId === intersects[0].object.uuid
 			);
