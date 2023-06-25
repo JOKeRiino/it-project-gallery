@@ -11,46 +11,16 @@ import { NoiseGenerator } from './components/NoiseGenerator.js';
 import { RemotePlayer } from './components/RemotePlayer.js';
 import { LocalPlayer } from './components/LocalPlayer.js';
 
-const KEYS = {
-	a: 65,
-	s: 83,
-	w: 87,
-	d: 68,
-};
-
-async function getImgDimensions(img, canvasSize) {
-	const progressBar = document.getElementById('image-fetch-progress');
-
-	const proxyUrl = img.url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
-	const [trueImageWidth, trueImageHeight] = await getImageSize(proxyUrl)
-		.then(([width, height]) => {
-			let w, h;
-			if (width > height) {
-				w = canvasSize;
-				h = canvasSize * (height / width);
-			} else {
-				h = canvasSize;
-				w = canvasSize * (width / height);
-			}
-			progressBar.textContent = 'Fetching image... ' + img.url.split('/').at(-1);
-			return [w, h];
-		})
-		.catch(error => {
-			console.error('Error:', error);
-		});
-	return [trueImageWidth, trueImageHeight];
-}
-
-function getImageSize(url) {
-	return new Promise(resolve => {
-		const image = new Image();
-		image.onload = function () {
-			const trueImageWidth = this.width;
-			const trueImageHeight = this.height;
-			resolve([trueImageWidth, trueImageHeight]);
-		};
-		image.src = url;
-	});
+function getImgDimensions(img, canvasSize) {
+	let w, h;
+	if (img.width > img.height) {
+		w = canvasSize;
+		h = canvasSize * (img.height / img.width);
+	} else {
+		h = canvasSize;
+		w = canvasSize * (img.width / img.height);
+	}
+	return [w, h];
 }
 
 const blocker = document.getElementById('blocker');
@@ -130,6 +100,7 @@ class GalerieApp {
 	initializeRenderer_() {
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('main'),
+			antialias: true,
 		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		document.body.appendChild(this.renderer.domElement);
@@ -148,6 +119,7 @@ class GalerieApp {
 			0.1,
 			1000
 		);
+		this.camera.layers.enableAll();
 		this.camera.rotation.order = 'YXZ';
 
 		this.camera.position.set(
@@ -161,12 +133,21 @@ class GalerieApp {
 			this.startingPosition.rotation.z
 		);
 
-		this.screenCenter = new THREE.Vector2(
-			window.innerWidth / 2,
-			window.innerHeight / 2
-		);
+		this.screenCenter = new THREE.Vector2(0, 0);
 
-		this.rayCaster = new THREE.Raycaster();
+		this.rayCaster = new THREE.Raycaster(undefined, undefined, undefined, 7.5);
+
+		/**
+		 * Filtering via Layers:
+		 * - Layer 0: Everything
+		 * - Layer 1: All Room Tiles (excluding the pictures)
+		 * - Layer 2: The Pictures
+		 * - Layer 3: Other Players
+		 * - Layer 4 to 31: Nothing
+		 */
+
+		this.rayCaster.layers.set(2);
+		this.rayCaster.layers.enable(1);
 
 		this.pictureLabelElem = document.createElement('div');
 		let pictureLabelAuthor = document.createElement('h2');
@@ -181,10 +162,12 @@ class GalerieApp {
 
 		//Configuring Loading Manager for Loading Screen
 		THREE.Cache.enabled = true;
+		const progressBar = document.getElementById('image-fetch-progress');
 		this.loadingManager = new THREE.LoadingManager();
 		let loader = document.getElementById('loader');
 		this.loadingManager.onProgress = (url, loaded, total) => {
 			loader.style.width = (loaded / total) * 100 + '%';
+			progressBar.textContent = 'Loaded ' + url.split('/').at(-1);
 		};
 		this.gltfLoader = new GLTFLoader(this.loadingManager);
 		this.fbxLoader = new FBXLoader(this.loadingManager);
@@ -200,8 +183,6 @@ class GalerieApp {
 			this.cssRenderer.setSize(width, height);
 			this.camera.aspect = width / height;
 			this.camera.updateProjectionMatrix();
-			this.screenCenter.x = window.innerWidth / 2;
-			this.screenCenter.y = window.innerHeight / 2;
 		});
 
 		window.addEventListener(
@@ -212,9 +193,6 @@ class GalerieApp {
 	}
 
 	initializeAvatarPreview_(model) {
-		//console.debug(model);
-		const width = window.innerWidth / 10;
-		const height = window.innerHeight / 5;
 		let scene = new THREE.Scene();
 		let light = new THREE.AmbientLight('white');
 		scene.add(light);
@@ -516,6 +494,7 @@ class GalerieApp {
 		}
 
 		this.roomTiles.forEach(r => {
+			if (r.name === 'plaque') console.debug(r);
 			this.scene.add(r);
 		});
 	}
@@ -542,7 +521,6 @@ class GalerieApp {
 	 * @param {Array<ImageInfo>} images
 	 */
 	async generateRoom_(matrix, images) {
-		// TODO: Separate Capacity counting from actual rendering!
 		let imageCount = 0;
 		this.plaques = [];
 		this.imageElements = [];
@@ -557,29 +535,35 @@ class GalerieApp {
 		const uTypes = ['tu', 'bu', 'lu', 'ru'];
 
 		//Floor Texture + Mat
-		const floorTexture = this.textureLoader.load('/img/materials/carpet2.jpg');
+		const floorTexture = await this.textureLoader.loadAsync(
+			'/img/materials/carpet2.jpg'
+		);
 		const floorMaterial = new THREE.MeshBasicMaterial({
 			map: floorTexture,
 		});
 		//Ceiling Texture + Mat
-		const ceilingTexture = this.textureLoader.load('/img/materials/ceiling.jpg');
+		const ceilingTexture = await this.textureLoader.loadAsync(
+			'/img/materials/ceiling.jpg'
+		);
 		const ceilingMaterial = new THREE.MeshBasicMaterial({
 			map: ceilingTexture,
 		});
 		//Wall Texture + Mat
-		const wallTexture = this.textureLoader.load('/img/materials/wall1.png');
+		const wallTexture = await this.textureLoader.loadAsync(
+			'/img/materials/wall1.png'
+		);
 		const wallMaterial = new THREE.MeshBasicMaterial({
 			map: wallTexture,
 		});
 		//Gallery Wall Texture + Mat
-		const galleryWallTexture = this.textureLoader.load(
+		const galleryWallTexture = await this.textureLoader.loadAsync(
 			'/img/materials/gallerywall1.png'
 		);
 		const galleryWallMaterial = new THREE.MeshBasicMaterial({
 			map: galleryWallTexture,
 		});
 		//Plaque Texture + Mat + Geometry
-		const plaqueTexture = this.textureLoader.load(
+		const plaqueTexture = await this.textureLoader.loadAsync(
 			'/img/materials/artistplacat.png'
 		);
 		const plaqueMaterial = new THREE.MeshBasicMaterial({
@@ -618,6 +602,7 @@ class GalerieApp {
 			floorMaterial,
 			numFloors
 		);
+		floorMesh.layers.enable(1);
 		floorMesh.name = 'floor';
 		floorMesh.receiveShadow = true;
 		this.roomTiles.push(floorMesh);
@@ -639,6 +624,7 @@ class GalerieApp {
 			ceilingMaterial,
 			numFloors
 		);
+		ceilingMesh.layers.enable(1);
 		ceilingMesh.name = 'ceiling';
 		ceilingMesh.receiveShadow = true;
 		this.roomTiles.push(ceilingMesh);
@@ -654,6 +640,67 @@ class GalerieApp {
 		};
 
 		//Plaque Mesh + Placement function
+		const plaqueMesh = new THREE.InstancedMesh(
+			plaqueGeometry,
+			plaqueMaterial,
+			images.length
+		);
+		plaqueMesh.layers.enable(1);
+		plaqueMesh.name = 'plaque';
+		this.roomTiles.push(plaqueMesh);
+		let plaqueIndex = 0;
+
+		const placePlaque = (x, y, edgeType) => {
+			let mat = new THREE.Matrix4();
+			//ROTATION
+			switch (edgeType) {
+				case 'p1':
+					mat.setPosition(
+						x * boxWidth,
+						galleryWallMesh.geometry.parameters.height * 0.15,
+						y * boxWidth + (wallDepth / 2 + 0.4)
+					);
+					break;
+				case 'p2':
+					mat.setPosition(
+						x * boxWidth,
+						galleryWallMesh.geometry.parameters.height * 0.15,
+						y * boxWidth - (wallDepth / 2 + 0.4)
+					);
+					break;
+				case 'lw':
+					mat.makeRotationY(Math.PI / 2);
+					mat.setPosition(
+						x * boxWidth - boxWidth / 2 + 0.1,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth
+					);
+					break;
+				case 'rw':
+					mat.makeRotationY(Math.PI / 2);
+					mat.setPosition(
+						x * boxWidth + boxWidth / 2 - 0.1,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth
+					);
+					break;
+				case 'tw':
+					mat.setPosition(
+						x * boxWidth,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth - boxWidth / 2 + 0.1
+					);
+					break;
+				case 'bw':
+					mat.setPosition(
+						x * boxWidth,
+						wallMesh.geometry.parameters.height * 0.12,
+						y * boxWidth + boxWidth / 2 - 0.1
+					);
+					break;
+			}
+			plaqueMesh.setMatrixAt(plaqueIndex++, mat);
+		};
 
 		// Gallery wall mesh + placement function
 		const galleryWallGeometry = new THREE.BoxGeometry(
@@ -666,6 +713,7 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
+		galleryWallMesh.layers.enable(1);
 		galleryWallMesh.name = 'galleryWall';
 		this.roomTiles.push(galleryWallMesh);
 		let galleryWallIndex = 0;
@@ -689,6 +737,7 @@ class GalerieApp {
 			_origMesh.material,
 			numEdges
 		);
+		chairMesh.layers.enable(1);
 		chairMesh.name = 'chair';
 
 		const placeChair = (x, y, edgeType) => {
@@ -741,6 +790,8 @@ class GalerieApp {
 			_origPltMesh2.material,
 			numEdges
 		);
+		plantMesh1.layers.enable(1);
+		plantMesh2.layers.enable(1);
 		plantMesh1.name = 'plant_1';
 		plantMesh2.name = 'plant_2';
 
@@ -769,6 +820,7 @@ class GalerieApp {
 			wallMaterial,
 			numOuterWalls
 		);
+		wallMesh.layers.enable(1);
 		wallMesh.name = 'outerWall';
 		this.roomTiles.push(wallMesh);
 		let outerWallIndex = 0;
@@ -829,10 +881,13 @@ class GalerieApp {
 					// Add one image to every side of the concrete wall!
 					//Image Canvas First Side
 					if (imageCount < images.length) {
-						const dims = await getImgDimensions(images[imageCount], 4);
+						const dims = getImgDimensions(images[imageCount], 4);
 						let canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = this.textureLoader.load(
-							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+						let imgTexture = await this.textureLoader.loadAsync(
+							images[imageCount].url.replace(
+								'http://digbb.informatik.fh-nuernberg.de',
+								'/image-proxy'
+							)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -844,29 +899,28 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 + (wallDepth / 2 + 0.4)
 						);
-						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						plaqueMesh.position.set(
-							0,
-							galleryWallMesh.geometry.parameters.height * 0.15,
-							0 + (wallDepth / 2 + 0.4)
-						);
+						canvasMesh.layers.enable(2);
+						canvasMesh.name = images[imageCount].title;
+						this.imageElements.push(canvasMesh);
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
-						this.imageElements.push(canvasMesh);
-						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
+						placePlaque(x, y, 'p1');
 						imageCount++;
 					}
 
 					//Image Canvas Second Side
 					if (imageCount < images.length) {
-						const dims = await getImgDimensions(images[imageCount], 4);
+						const dims = getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = this.textureLoader.load(
-							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+						let imgTexture = await this.textureLoader.loadAsync(
+							images[imageCount].url.replace(
+								'http://digbb.informatik.fh-nuernberg.de',
+								'/image-proxy'
+							)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -878,18 +932,15 @@ class GalerieApp {
 							galleryWallMesh.geometry.parameters.height / 2 + 0.3,
 							0 - (wallDepth / 2 + 0.4)
 						);
-						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						plaqueMesh.position.set(
-							galleryWallMesh.geometry.parameters.height * 0.15,
-							0 - (wallDepth / 2 + 0.4)
-						);
+						canvasMesh.layers.enable(2);
+						canvasMesh.name = images[imageCount].title;
+						placePlaque(x, y, 'p2');
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -907,10 +958,13 @@ class GalerieApp {
 					placeOuterWall(x, y, matrix[y][x][0]);
 					//Image Canvas
 					if (imageCount < images.length) {
-						const dims = await getImgDimensions(images[imageCount], 4);
+						const dims = getImgDimensions(images[imageCount], 4);
 						const canvasGeometry = new THREE.BoxGeometry(dims[0], dims[1], 0.1);
-						let imgTexture = this.textureLoader.load(
-							images[imageCount].url.replace('http://digbb.informatik.fh-nuernberg.de', '/image-proxy')
+						let imgTexture = await this.textureLoader.loadAsync(
+							images[imageCount].url.replace(
+								'http://digbb.informatik.fh-nuernberg.de',
+								'/image-proxy'
+							)
 						);
 						const canvasMaterial = new THREE.MeshBasicMaterial({
 							map: imgTexture,
@@ -922,19 +976,16 @@ class GalerieApp {
 							wallMesh.geometry.parameters.height * 0.42,
 							0 - boxWidth / 2 + 0.205
 						);
-						const plaqueMesh = new THREE.Mesh(plaqueGeometry, plaqueMaterial);
-						plaqueMesh.position.set(
-							0,
-							wallMesh.geometry.parameters.height * 0.12,
-							0 - boxWidth / 2 + 0.1
-						);
+						canvasMesh.layers.enable(2);
+						canvasMesh.name = images[imageCount].title;
+						placePlaque(x, y, matrix[y][x]);
+
 						this.plaques.push({
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
 						});
 						this.imageElements.push(canvasMesh);
-						oneWallGroup.add(plaqueMesh);
 						oneWallGroup.add(canvasMesh);
 						imageCount++;
 					}
@@ -1012,6 +1063,7 @@ class GalerieApp {
 		chairMesh.count = chairIndex;
 		plantMesh1.count = plantIndex;
 		plantMesh2.count = plantIndex;
+		ceilingMesh.count = ceilingIndex;
 		return imageCount;
 	}
 
@@ -1077,17 +1129,16 @@ class GalerieApp {
 	}
 
 	checkIntersectionOnMouseMove(event) {
-		this.screenCenter.x = (window.innerWidth / 2 / window.innerWidth) * 2 - 1;
-		this.screenCenter.y = -(window.innerHeight / 2 / window.innerHeight) * 2 + 1;
-
 		this.rayCaster.setFromCamera(this.screenCenter, this.camera);
-		let intersects = this.rayCaster.intersectObjects(this.imageElements, false);
+
+		let intersects = this.rayCaster.intersectObjects(this.scene.children, true);
 
 		if (intersects.length > 0) {
+			//console.debug(intersects);
 			let foundElement = this.plaques.find(
 				el => el.imageId === intersects[0].object.uuid
 			);
-			if (foundElement && intersects[0].distance < 7.5) {
+			if (foundElement) {
 				this.pictureLabel.position.copy(intersects[0].point);
 				this.pictureLabel.position.y -= 2;
 				this.pictureLabel.element.children[0].innerText =
@@ -1102,37 +1153,35 @@ class GalerieApp {
 
 	//Recursive UPDATE Loop
 	renderAnimationFrame_() {
-		const time = performance.now();
-		const delta = (time - prevTime) / 1000;
-		requestAnimationFrame(f => {
-			this.renderer.render(this.scene, this.camera);
-			this.cssRenderer.render(this.scene, this.camera);
+		this.renderer.setAnimationLoop(time => {
+			const delta = (time - prevTime) / 1000;
 			this.updatePlayers();
 			Object.values(this.localPlayers).forEach(p => {
 				p.anims?.update(delta);
 			});
-			this.renderAnimationFrame_();
+
+			if (controls.isLocked === true) {
+				velocity.x -= velocity.x * 10.0 * delta;
+				velocity.z -= velocity.z * 10.0 * delta;
+				//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
+				direction.z = Number(moveForward) - Number(moveBackward);
+				direction.x = Number(moveRight) - Number(moveLeft);
+				direction.normalize(); // this ensures consistent movements in all directions
+
+				if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
+				if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
+
+				// if ( onObject === true ) {
+				// 	velocity.y = Math.max( 0, velocity.y );
+				// 	canJump = true;
+				// }
+				controls.moveRight(-velocity.x * delta);
+				controls.moveForward(-velocity.z * delta);
+			}
+			this.renderer.render(this.scene, this.camera);
+			this.cssRenderer.render(this.scene, this.camera);
+			prevTime = time;
 		});
-
-		if (controls.isLocked === true) {
-			velocity.x -= velocity.x * 10.0 * delta;
-			velocity.z -= velocity.z * 10.0 * delta;
-			//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
-			direction.z = Number(moveForward) - Number(moveBackward);
-			direction.x = Number(moveRight) - Number(moveLeft);
-			direction.normalize(); // this ensures consistent movements in all directions
-
-			if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
-			if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
-
-			// if ( onObject === true ) {
-			// 	velocity.y = Math.max( 0, velocity.y );
-			// 	canJump = true;
-			// }
-			controls.moveRight(-velocity.x * delta);
-			controls.moveForward(-velocity.z * delta);
-		}
-		prevTime = time;
 	}
 
 	//FPS and RAM stats
