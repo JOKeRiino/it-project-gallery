@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { io, Socket } from 'socket.io-client';
 import { Player } from './Player.js';
 
+const messagesContainer = document.querySelector('#messages');
+
 export class LocalPlayer extends Player {
 	/**@type {Socket} */
 	socket;
