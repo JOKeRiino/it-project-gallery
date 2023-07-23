@@ -295,6 +295,7 @@ io.on(
 					sender: username,
 				});
 			} else {
+				// TODO handle error
 				socket.emit('error', `User ${data.targetUserId} not found.`);
 			}
 		});

@@ -62,7 +62,7 @@ export class LocalPlayer extends Player {
 		});
 
 		socket.on('whisper', data => {
-			this.appendMessage(data);
+			this.appendWhisperMessage(data);
 		});
 	}
 
@@ -132,81 +132,90 @@ export class LocalPlayer extends Player {
 		}
 	}
 
+	appendSystemMessage(message) {
+		let messageElement = document.createElement('p');
+		messageElement.textContent = `[${new Date().toLocaleTimeString()}] System: ${message}`;
+		messageElement.classList.add('system-message'); // This class can be used to style system messages differently
+		messagesContainer.append(messageElement);
+	}
+
+	appendWhisperMessage(data) {
+		if (data != null) {
+			let messageElement = document.createElement('p');
+			messageElement.textContent = `[${new Date(
+				data.timestamp
+			).toLocaleTimeString()}] (Whisper from ${data.sender}): ${data.message}`;
+			messageElement.classList.add('whisper-message'); // This class can be used to style whisper messages differently
+			messagesContainer.append(messageElement);
+		}
+	}
+
 	// TODO display all System messages in different colour
 	checkCommands(message) {
-		// Check if the message starts with a '/'
-		if (message.charAt(0) === '/') {
-			// Split the message into the command and the argument
-			const [command, ...args] = message.substring(1).split(' ');
+		if (message.charAt(0) !== '/') {
+			return false;
+		}
 
-			switch (command) {
-				case 'tp':
-					if (args.length === 0) {
-						// User didn't provide a target player name
-						this.appendMessage(new ChatError('Usage: /tp [player name]', 'Sytem'));
-					} else {
-						try {
-							this.teleportTo(args[0]);
-						} catch (error) {
-							console.log(error);
-							this.appendMessage(error);
-						}
-					}
-					break;
-				case 'whisper':
+		const [command, ...args] = message.substring(1).split(' ');
+
+		switch (command) {
+			case 'tp':
+				if (args.length === 0) {
+					this.appendSystemMessage('Usage: /tp [player name]');
+				} else {
 					try {
-						this.whisper(args);
+						this.teleportTo(args[0]);
 					} catch (error) {
-						this.appendMessage(error);
+						console.log(error);
+						this.appendSystemMessage(error.message);
 					}
-					break;
+				}
+				break;
 
-				case 'help':
-					const availableCommands = [
-						'/tp [player name] - Teleport to given player.',
-						'/whisper [player name] [message] - Send a private message to a player.',
-						// add descriptions of other commands here
-					];
-					this.appendMessage(
-						new ChatError(
-							`Available commands:\n${availableCommands.join('\n')}`,
-							'System'
-						)
-					);
+			case 'whisper':
+				try {
+					this.whisper(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
 
-					break;
+			case 'help':
+				const availableCommands = [
+					'/tp [player name] - Teleport to given player.',
+					'/whisper [player name] [message] - Send a private message to a player.',
+				];
+				this.appendSystemMessage(
+					`Available commands:\n${availableCommands.join('\n')}`
+				);
+				break;
 
-				// Add more cases for additional commands
-				default:
-					this.appendMessage(
-						new ChatError(
-							`Invalid command: ${command} \n Type /help to see list of available commands`,
-							'Sytem'
-						)
-					);
-			}
+			default:
+				this.appendSystemMessage(
+					`Invalid command: ${command}. Type /help to see list of available commands`
+				);
+		}
 
-			return true;
-		} else return false;
+		return true;
 	}
 
 	teleportTo(target) {
-		console.log(this.game.localPlayers);
+		if (this.game.player.userName === target) {
+			this.appendSystemMessage('You cannot teleport to yourself.');
+			return;
+		}
 
 		const playersArray = Object.values(this.game.localPlayers);
 		const targetPlayer = playersArray.find(player => player.userName === target);
 
-		if (this.game.player.userName === target) {
-			throw new ChatError('You cannot teleport to yourself.', 'System');
-		}
-
 		if (!targetPlayer) {
-			throw new ChatError(`Player ${target} not found.`, 'System');
+			this.appendSystemMessage(`Player ${target} not found.`);
+			return;
 		}
 
 		this.game.camera.position.copy(targetPlayer.position);
 
-		// Not working perfectly
+		// Doesnt work perfectly
 		this.game.camera.lookAt(
 			targetPlayer.rotation.x,
 			targetPlayer.rotation.y,
@@ -216,12 +225,17 @@ export class LocalPlayer extends Player {
 
 	whisper(args) {
 		if (args.length < 2) {
-			// If there aren't enough arguments, send an error message
-			throw new ChatError('Usage: /whisper [user] [message]', 'System');
+			this.appendSystemMessage('Usage: /whisper [user] [message]');
+			return;
 		}
 
 		const [target, ...messageParts] = args;
 		const message = messageParts.join(' ');
+
+		if (this.game.player.userName === target) {
+			this.appendSystemMessage('You cannot whisper to yourself.');
+			return;
+		}
 
 		const playersArray = Object.entries(this.game.localPlayers);
 		const targetEntry = playersArray.find(
@@ -229,15 +243,11 @@ export class LocalPlayer extends Player {
 		);
 
 		if (!targetEntry) {
-			throw new ChatError(`Player ${target} not found.`, 'System');
-		} else if (this.game.player.userName === target) {
-			throw new ChatError('You cannot whisper to yourself.', 'System');
-		} else {
-			const [targetId, targetPlayer] = targetEntry;
-			this.socket.emit('whisper', {
-				targetUserId: targetId,
-				message: message,
-			});
+			this.appendSystemMessage(`Player ${target} not found.`);
+			return;
 		}
+
+		const [targetId, targetPlayer] = targetEntry;
+		this.socket.emit('whisper', { targetUserId: targetId, message: message });
 	}
 }

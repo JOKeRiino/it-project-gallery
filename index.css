@@ -290,6 +290,14 @@ p {
 	white-space: pre-line;
 }
 
+.system-message {
+	color: red;
+}
+
+.whisper-message {
+	color: green;
+}
+
 .pictureLabel {
 	width: 10vw;
 	min-width: 250px;
