@@ -291,11 +291,11 @@ p {
 }
 
 .system-message {
-	color: red;
+	color: #cf5c36;
 }
 
 .whisper-message {
-	color: green;
+	color: #88527f;
 }
 
 .pictureLabel {
