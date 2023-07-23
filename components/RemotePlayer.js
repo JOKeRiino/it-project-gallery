@@ -17,7 +17,7 @@ export class RemotePlayer extends Player {
 		this.rotation.x = startingPosition.rx;
 		this.rotation.z = startingPosition.rz;
 
-		this.name = startingPosition.name;
+		this.userName = startingPosition.name;
 		this.avatar = startingPosition.model;
 
 		let name = document.createElement('div');
@@ -112,8 +112,8 @@ export class RemotePlayer extends Player {
 
 		this.velocity = position.velocity;
 		if (position.name) {
-			this.name = position.name;
-			this.nameTag.element.innerText = this.name;
+			this.userName = position.name;
+			this.nameTag.element.innerText = this.userName;
 		}
 		if (position.model) {
 			this.avatar = position.model;

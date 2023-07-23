@@ -292,7 +292,7 @@ class GalerieApp {
 				isFormSubmitting = true;
 
 				// TODO: Validate and save player name / model etc.
-				this.player.name = instructions.querySelector('#playerName').value;
+				this.player.userName = instructions.querySelector('#playerName').value;
 				this.player.model = instructions.querySelector('#playerModel').value;
 				this.player.initSocket();
 				if (!this.updater)

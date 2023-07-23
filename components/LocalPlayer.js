@@ -64,7 +64,7 @@ export class LocalPlayer extends Player {
 		console.log('PlayerLocal.initSocket', this);
 		this.socket.emit('init', {
 			model: this.model,
-			name: this.name,
+			name: this.userName,
 			x: this.position.x,
 			y: this.position.y,
 			z: this.position.z,

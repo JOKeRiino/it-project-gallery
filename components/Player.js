@@ -11,7 +11,7 @@ export class Player {
 	game;
 	/**@type {FBXLoader} */
 	loader;
-	name = '';
+	userName = '';
 	avatar = '';
 	/**@param {GalerieApp} game */
 	constructor(game) {
