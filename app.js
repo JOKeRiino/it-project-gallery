@@ -96,10 +96,12 @@ async function scrapeData(url) {
 		//console.log(url + pagination);
 		pageElements.each((idx, el) => {
 			//console.log('Page ' + count + ' of 8. Scraping element ' + idx);
-			let wp_id = +/photo_id=([0-9]+)/.exec($(el).children('.imagebox').children('a').attr('href'))[1]
+			let wp_id = +/photo_id=([0-9]+)/.exec(
+				$(el).children('.imagebox').children('a').attr('href')
+			)[1];
 
 			let img = {
-				id: wp_id
+				id: wp_id,
 			};
 
 			images.push(img);
@@ -108,19 +110,25 @@ async function scrapeData(url) {
 
 	// request image info from WP API
 	// advantage to scraping everything: you get the image dimensions and don't need to determine them client-side on every load.
-	let data = await (await fetch('http://digbb.informatik.fh-nuernberg.de/wp-json/wp/v2/media?include='+images.map(i=>i.id).join(',')+`&per_page=${images.length}`)).json()
-	data.forEach(v=>{
-		img = images.find(i=>i.id===v.id)
+	let data = await (
+		await fetch(
+			'http://digbb.informatik.fh-nuernberg.de/wp-json/wp/v2/media?include=' +
+				images.map(i => i.id).join(',') +
+				`&per_page=${images.length}`
+		)
+	).json();
+	data.forEach(v => {
+		img = images.find(i => i.id === v.id);
 		// TODO: maybe use downscaled images for performance boosts?
-		let targetImage = v.media_details.sizes.full
-		img.width = targetImage.width
-		img.height = targetImage.height
-		let metaData = v.title.rendered.replace('&#8211;','-')
+		let targetImage = v.media_details.sizes.full;
+		img.width = targetImage.width;
+		img.height = targetImage.height;
+		let metaData = v.title.rendered.replace('&#8211;', '-');
 		let i = metaData.lastIndexOf('-');
 		img.author = metaData.substring(i + 1).trim();
 		img.title = metaData.substring(0, i).trim();
-		img.url = targetImage.source_url
-	})
+		img.url = targetImage.source_url;
+	});
 
 	fs.writeFile('imageData.json', JSON.stringify(images, null, 2), err => {
 		if (err) {
@@ -274,6 +282,21 @@ io.on(
 				sender: username,
 				message: data.message,
 			});
+		});
+
+		socket.on('whisper', data => {
+			let username = socket.userData?.name ? socket.userData.name : socket.id;
+			let timestamp = new Date();
+
+			if (data.targetUserId) {
+				io.to(data.targetUserId).emit('whisper', {
+					timestamp: timestamp,
+					message: data.message,
+					sender: username,
+				});
+			} else {
+				socket.emit('error', `User ${data.targetUserId} not found.`);
+			}
 		});
 	}
 );

@@ -60,6 +60,10 @@ export class LocalPlayer extends Player {
 			console.log('received msg: ' + data.message + ' from user: ' + data.sender);
 			this.appendMessage(data);
 		});
+
+		socket.on('whisper', data => {
+			this.appendMessage(data);
+		});
 	}
 
 	// TODO Add information about the player model like colour, character model,...
@@ -149,9 +153,18 @@ export class LocalPlayer extends Player {
 						}
 					}
 					break;
+				case 'whisper':
+					try {
+						this.whisper(args);
+					} catch (error) {
+						this.appendMessage(error);
+					}
+					break;
+
 				case 'help':
 					const availableCommands = [
 						'/tp [player name] - Teleport to given player.',
+						'/whisper [player name] [message] - Send a private message to a player.',
 						// add descriptions of other commands here
 					];
 					this.appendMessage(
@@ -199,5 +212,32 @@ export class LocalPlayer extends Player {
 			targetPlayer.rotation.y,
 			targetPlayer.rotation.z
 		);
+	}
+
+	whisper(args) {
+		if (args.length < 2) {
+			// If there aren't enough arguments, send an error message
+			throw new ChatError('Usage: /whisper [user] [message]', 'System');
+		}
+
+		const [target, ...messageParts] = args;
+		const message = messageParts.join(' ');
+
+		const playersArray = Object.entries(this.game.localPlayers);
+		const targetEntry = playersArray.find(
+			([id, player]) => player.userName === target
+		);
+
+		if (!targetEntry) {
+			throw new ChatError(`Player ${target} not found.`, 'System');
+		} else if (this.game.player.userName === target) {
+			throw new ChatError('You cannot whisper to yourself.', 'System');
+		} else {
+			const [targetId, targetPlayer] = targetEntry;
+			this.socket.emit('whisper', {
+				targetUserId: targetId,
+				message: message,
+			});
+		}
 	}
 }
