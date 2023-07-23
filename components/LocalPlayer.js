@@ -128,6 +128,7 @@ export class LocalPlayer extends Player {
 		}
 	}
 
+	// TODO display all System messages in different colour
 	checkCommands(message) {
 		// Check if the message starts with a '/'
 		if (message.charAt(0) === '/') {
@@ -148,11 +149,28 @@ export class LocalPlayer extends Player {
 						}
 					}
 					break;
+				case 'help':
+					const availableCommands = [
+						'/tp [player name] - Teleport to given player.',
+						// add descriptions of other commands here
+					];
+					this.appendMessage(
+						new ChatError(
+							`Available commands:\n${availableCommands.join('\n')}`,
+							'System'
+						)
+					);
+
+					break;
 
 				// Add more cases for additional commands
 				default:
-					this.appendMessage(new ChatError(`Invalid command: ${command}`, 'Sytem'));
-					console.log(`Invalid command: ${command}`);
+					this.appendMessage(
+						new ChatError(
+							`Invalid command: ${command} \n Type /help to see list of available commands`,
+							'Sytem'
+						)
+					);
 			}
 
 			return true;

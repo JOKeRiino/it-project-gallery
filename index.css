@@ -286,6 +286,10 @@ label {
 	height: 25px;
 }
 
+p {
+	white-space: pre-line;
+}
+
 .pictureLabel {
 	width: 10vw;
 	min-width: 250px;
