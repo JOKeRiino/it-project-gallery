@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { io, Socket } from 'socket.io-client';
 import { Player } from './Player.js';
+import { ChatError } from './errors/ChatError.js';
 
 const messagesContainer = document.querySelector('#messages');
 
@@ -107,11 +108,13 @@ export class LocalPlayer extends Player {
 	}
 
 	sendMessage(message) {
-		console.log('sendMessage(): ' + message);
-		if (this.socket !== undefined) {
-			this.socket.emit('message', {
-				message: message,
-			});
+		if (this.socket === undefined) {
+			throw new Error('Socket is undefined');
+		}
+
+		let isCommand = this.checkCommands(message);
+		if (!isCommand) {
+			this.socket.emit('message', { message: message });
 		}
 	}
 
@@ -123,5 +126,60 @@ export class LocalPlayer extends Player {
 			}: ${data.message}`;
 			messagesContainer.append(message);
 		}
+	}
+
+	checkCommands(message) {
+		// Check if the message starts with a '/'
+		if (message.charAt(0) === '/') {
+			// Split the message into the command and the argument
+			const [command, ...args] = message.substring(1).split(' ');
+
+			switch (command) {
+				case 'tp':
+					if (args.length === 0) {
+						// User didn't provide a target player name
+						this.appendMessage(new ChatError('Usage: /tp [player name]', 'Sytem'));
+					} else {
+						try {
+							this.teleportTo(args[0]);
+						} catch (error) {
+							console.log(error);
+							this.appendMessage(error);
+						}
+					}
+					break;
+
+				// Add more cases for additional commands
+				default:
+					this.appendMessage(new ChatError(`Invalid command: ${command}`, 'Sytem'));
+					console.log(`Invalid command: ${command}`);
+			}
+
+			return true;
+		} else return false;
+	}
+
+	teleportTo(target) {
+		console.log(this.game.localPlayers);
+
+		const playersArray = Object.values(this.game.localPlayers);
+		const targetPlayer = playersArray.find(player => player.userName === target);
+
+		if (this.game.player.userName === target) {
+			throw new ChatError('You cannot teleport to yourself.', 'System');
+		}
+
+		if (!targetPlayer) {
+			throw new ChatError(`Player ${target} not found.`, 'System');
+		}
+
+		this.game.camera.position.copy(targetPlayer.position);
+
+		// Not working perfectly
+		this.game.camera.lookAt(
+			targetPlayer.rotation.x,
+			targetPlayer.rotation.y,
+			targetPlayer.rotation.z
+		);
 	}
 }
