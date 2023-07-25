@@ -1189,10 +1189,10 @@ class GalerieApp {
 				const onObjectx1 = intersectionsx1.length > 0;
 				const onObjectx2 = intersectionsx2.length > 0;
 
-				console.log(onObjectz1);
-				console.log(onObjectz2);
-				console.log(onObjectx1);
-				console.log(onObjectx2);
+				// console.log(onObjectz1);
+				// console.log(onObjectz2);
+				// console.log(onObjectx1);
+				// console.log(onObjectx2);
 
 				if ( onObjectz1 === true && velocity.z>0 ) {
 					velocity.z = 0;
