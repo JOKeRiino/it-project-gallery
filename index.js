@@ -25,6 +25,11 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
+const objects = [];
+let raycasterz1;
+let raycasterz2;
+let raycasterx1;
+let raycasterx2;
 // Chatbox selectors
 const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
@@ -463,6 +468,12 @@ class GalerieApp {
 		var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 		dirLight.position.set(75, 300, -75);
 		this.scene.add(dirLight);
+
+		//(temporary)other
+		this.raycasterz1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ), 0, 3 );
+		this.raycasterz2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 3 );
+		this.raycasterx1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 1, 0, 0 ), 0, 3 );
+		this.raycasterx2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( -1, 0, 0 ), 0, 3 );
 	}
 
 	/**
@@ -1161,6 +1172,41 @@ class GalerieApp {
 			});
 
 			if (controls.isLocked === true) {
+				this.raycasterz1.ray.origin.copy(controls.getObject().position);
+				this.raycasterz2.ray.origin.copy(controls.getObject().position);
+				this.raycasterx1.ray.origin.copy(controls.getObject().position);
+				this.raycasterx2.ray.origin.copy(controls.getObject().position);
+
+				//raycaster.ray.origin.y -= 10;
+
+				const intersectionsz1 = this.raycasterz1.intersectObjects( this.roomTiles, false );
+				const intersectionsz2 = this.raycasterz2.intersectObjects( this.roomTiles, false );
+				const intersectionsx1 = this.raycasterx1.intersectObjects( this.roomTiles, false );
+				const intersectionsx2 = this.raycasterx2.intersectObjects( this.roomTiles, false );
+
+				const onObjectz1 = intersectionsz1.length > 0;
+				const onObjectz2 = intersectionsz2.length > 0;
+				const onObjectx1 = intersectionsx1.length > 0;
+				const onObjectx2 = intersectionsx2.length > 0;
+
+				console.log(onObjectz1);
+				console.log(onObjectz2);
+				console.log(onObjectx1);
+				console.log(onObjectx2);
+
+				if ( onObjectz1 === true && velocity.z>0 ) {
+					velocity.z = 0;
+					}
+				if ( onObjectz2 === true && velocity.z<0 ) {
+					velocity.z = 0;
+					}
+				if ( onObjectx1 === true && velocity.x>0) {
+					velocity.x = 0;
+					}
+				if ( onObjectx2 === true && velocity.x<0 ) {
+					velocity.x = 0;
+					}
+
 				velocity.x -= velocity.x * 10.0 * delta;
 				velocity.z -= velocity.z * 10.0 * delta;
 				//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
