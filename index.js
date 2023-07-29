@@ -548,6 +548,16 @@ class GalerieApp {
 		const ceilingMaterial = new THREE.MeshBasicMaterial({
 			map: ceilingTexture,
 		});
+
+		//CeilingWindow Texture + Mat
+		const ceilingWindowTexture = await this.textureLoader.loadAsync(
+			'img/materials/ceilingWindow2.png'
+		);
+		const ceilingWindowMaterial = new THREE.MeshBasicMaterial({
+			map: ceilingWindowTexture,
+			transparent: true,
+		});
+
 		//Wall Texture + Mat
 		const wallTexture = await this.textureLoader.loadAsync(
 			'/img/materials/wall1.png'
@@ -618,7 +628,11 @@ class GalerieApp {
 		};
 
 		// Ceiling mesh + placement function
-		const ceilingGeometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+		const ceilingGeometry = new THREE.BoxGeometry(
+			boxWidth,
+			boxHeight * 2,
+			boxDepth
+		);
 		const ceilingMesh = new THREE.InstancedMesh(
 			ceilingGeometry,
 			ceilingMaterial,
@@ -637,6 +651,38 @@ class GalerieApp {
 				y * boxWidth
 			);
 			ceilingMesh.setMatrixAt(ceilingIndex++, mat);
+		};
+
+		// Ceiling Window mesh + placement function + alpha
+		const ceilingWindowAlphaMap = await this.textureLoader.loadAsync(
+			'img/materials/ceilingWindowAlphaMap.png'
+		);
+		ceilingWindowMaterial.alphaMap = ceilingWindowAlphaMap;
+		ceilingWindowMaterial.alphaMap.magFilter = THREE.NearestFilter;
+
+		const ceilingWindowGeometry = new THREE.BoxGeometry(
+			boxWidth,
+			boxHeight,
+			boxDepth
+		);
+		const ceilingWindowMesh = new THREE.InstancedMesh(
+			ceilingWindowGeometry,
+			ceilingWindowMaterial,
+			numFloors
+		);
+		ceilingWindowMesh.layers.enable(1);
+		ceilingWindowMesh.name = 'ceiling';
+		ceilingWindowMesh.receiveShadow = true;
+		this.roomTiles.push(ceilingWindowMesh);
+		let ceilingWindowIndex = 0;
+		const placeCeilingWindow = (x, y) => {
+			let mat = new THREE.Matrix4();
+			mat.setPosition(
+				x * boxWidth,
+				ceilingWindowMesh.geometry.parameters.height / 2 + wallHeight,
+				y * boxWidth
+			);
+			ceilingWindowMesh.setMatrixAt(ceilingWindowIndex++, mat);
 		};
 
 		//Plaque Mesh + Placement function
@@ -878,6 +924,8 @@ class GalerieApp {
 					placeFloor(x, y);
 					//The concrete Wall
 					placePillar(x, y);
+					//The ceiling window above
+					placeCeilingWindow(x, y);
 					// Add one image to every side of the concrete wall!
 					//Image Canvas First Side
 					if (imageCount < images.length) {
