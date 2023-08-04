@@ -111,8 +111,8 @@ async function scrapeData(url) {
 	let data = await (await fetch('http://digbb.informatik.fh-nuernberg.de/wp-json/wp/v2/media?include='+images.map(i=>i.id).join(',')+`&per_page=${images.length}`)).json()
 	data.forEach(v=>{
 		img = images.find(i=>i.id===v.id)
-		// TODO: maybe use downscaled images for performance boosts?
-		let targetImage = v.media_details.sizes.full
+		// use downscaled images for performance boost. ~1024px is big enough.
+		let targetImage = v.media_details.sizes.large??v.media_details.sizes.full
 		img.width = targetImage.width
 		img.height = targetImage.height
 		let metaData = v.title.rendered.replace('&#8211;','-')
