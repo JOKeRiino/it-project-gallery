@@ -220,7 +220,7 @@ class GalerieApp {
 
 				bbox.setFromObject(mdl)
 
-				let width = bbox.max.x - bbox.min.x;
+				let width = document.getElementById('avatarPreview').parentElement.clientWidth / 50
 				height = bbox.max.y - bbox.min.y;
 				// const pad_height = height / 10;
 				// width += width / 10;
