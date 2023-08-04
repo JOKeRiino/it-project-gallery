@@ -1,27 +1,29 @@
 const express = require('express');
 const app = express();
-const _hserver = require('http').Server;
-const http = new _hserver(app);
+const http = require('http').createServer(app);
 const sio = require('socket.io');
 const io = new sio.Server(http);
 const fs = require('fs');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const proxy = require('express-http-proxy');
 
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
 });
 
-app.get('/image-proxy', async (req, res) => {
-	const imageUrl = req.query.url;
-	const response = await axios.get(imageUrl, {
-		responseType: 'arraybuffer',
-	});
-
-	res.set('Content-Type', response.headers['content-type']);
-	res.send(response.data);
-});
+app.use(
+	'/image-proxy',
+	proxy('http://digbb.informatik.fh-nuernberg.de', {
+		userResHeaderDecorator(digbb_headers) {
+			// advise browser to not request etag in a day --> speed up loading
+			result = Object.assign({}, digbb_headers);
+			result['cache-control'] = 'max-age=86400; immutable';
+			return result;
+		},
+	})
+);
 
 app.get('/avatars', (req, res) => {
 	let avail_avatars = fs.readdirSync(__dirname + '/img/models/avatars', {
@@ -35,13 +37,30 @@ app.get('/avatars', (req, res) => {
 });
 
 app.get('/scrapeImages', (req, res) => {
-	if (!fs.existsSync('imageData.json')) {
-		console.log("file doesn't exist");
-		getLatestImagesUrl().then(images => {
-			res.send(JSON.stringify(images));
-		});
+	const exists = fs.existsSync('imageData.json');
+	const last_mod = exists
+		? fs.statSync('imageData.json').mtime
+		: new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0));
+	const GRACE_PERIOD = 24 * 60 * 60 * 1000; // 1 day
+
+	// client-side caching of response the same time the server caches the results.
+
+	// rescrape if data file not recently modified, something may have changed
+	if (!exists || Date.now() - last_mod > GRACE_PERIOD) {
+		console.log("file doesn't exist or wasn't modified recently.");
+		getLatestImagesUrl()
+			.then(images => {
+				res
+					.header('Expires', new Date(Date.now() + GRACE_PERIOD).toUTCString())
+					.send(JSON.stringify(images));
+			})
+			.catch(err => {
+				console.log(err);
+				res.status(502).send();
+			});
 	} else {
 		console.log('file exists');
+		res.header('Expires', new Date(last_mod + GRACE_PERIOD).toUTCString());
 		res.send(JSON.parse(fs.readFileSync('imageData.json')));
 	}
 });
@@ -50,15 +69,16 @@ async function getLatestImagesUrl() {
 	const { data } = await axios.get('http://digbb.informatik.fh-nuernberg.de/');
 	const $ = cheerio.load(data);
 	const matchingElements = $('.menu-item');
-	let found = false;
+	let found = null;
 	matchingElements.each((index, element) => {
-		if ($(element).children('a').text() === 'Wettbewerbe' && !found) {
-			found = true;
+		if ($(element).children('a').text() === 'Wettbewerbe') {
 			const listItems = $(element).children('ul').children('li');
 			const href = $(listItems[0]).children('a').attr('href').toString();
-			scrapeData(href);
+			found = scrapeData(href);
+			return false;
 		}
 	});
+	return found;
 }
 
 async function scrapeData(url) {
@@ -76,28 +96,31 @@ async function scrapeData(url) {
 		//console.log(url + pagination);
 		pageElements.each((idx, el) => {
 			//console.log('Page ' + count + ' of 8. Scraping element ' + idx);
-			let metaData = $(el)
-				.children('.gallery-title-autor')
-				.children('.author')
-				.attr('title')
-				.split('-');
+			let wp_id = +/photo_id=([0-9]+)/.exec($(el).children('.imagebox').children('a').attr('href'))[1]
 
-			if (metaData.length > 1) {
-				let img = {
-					url: $(el)
-						.children('.imagebox')
-						.children('a')
-						.children('img')
-						.attr('src')
-						.replace('-350x350', ''),
-					author: metaData[1].trim(),
-					title: metaData[0].trim(),
-				};
+			let img = {
+				id: wp_id
+			};
 
-				images.push(img);
-			}
+			images.push(img);
 		});
 	} while (pageElements.length > 0);
+
+	// request image info from WP API
+	// advantage to scraping everything: you get the image dimensions and don't need to determine them client-side on every load.
+	let data = await (await fetch('http://digbb.informatik.fh-nuernberg.de/wp-json/wp/v2/media?include='+images.map(i=>i.id).join(',')+`&per_page=${images.length}`)).json()
+	data.forEach(v=>{
+		img = images.find(i=>i.id===v.id)
+		// TODO: maybe use downscaled images for performance boosts?
+		let targetImage = v.media_details.sizes.full
+		img.width = targetImage.width
+		img.height = targetImage.height
+		let metaData = v.title.rendered.replace('&#8211;','-')
+		let i = metaData.lastIndexOf('-');
+		img.author = metaData.substring(i + 1).trim();
+		img.title = metaData.substring(0, i).trim();
+		img.url = targetImage.source_url
+	})
 
 	fs.writeFile('imageData.json', JSON.stringify(images, null, 2), err => {
 		if (err) {
