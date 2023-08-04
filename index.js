@@ -173,7 +173,8 @@ class GalerieApp {
 		this.fbxLoader = new FBXLoader(this.loadingManager);
 		this.textureLoader = new THREE.TextureLoader(this.loadingManager);
 		this.textureLoader.crossOrigin = 'Anonymous';
-		this.fbxLoader.setPath('img/models/avatars/textures/');
+		this.fbxLoader.setPath('img/models/avatars/');
+		this.fbxLoader.setResourcePath('img/models/avatars/textures/');
 
 		//EventListener to react to a change in window size.
 		window.addEventListener('resize', () => {
@@ -200,24 +201,32 @@ class GalerieApp {
 		let avatar;
 
 		if (model) {
-			this.fbxLoader.load('../' + model + '.fbx', mdl => {
+			this.fbxLoader.load(model + '.fbx', mdl => {
 				let anims = new THREE.AnimationMixer(mdl);
-				this.fbxLoader.load('../../animations/Idle.fbx', data => {
-					let clip = anims.clipAction(data.animations[0]);
-					clip.play();
-				});
-
-				mdl.scale.set(0.02, 0.02, 0.02);
+				console.log(mdl.animations.map(a => a.name));
+				let clip = anims.clipAction(
+					mdl.animations.find(ani => ani.name.toLowerCase().includes('idle'))
+				);
+				clip.play();
 
 				let bbox = new THREE.Box3();
 				bbox.setFromObject(mdl);
-				let width = bbox.max.x - bbox.min.x;
+				const targetHeight = 3.15;
 				let height = bbox.max.y - bbox.min.y;
-				const pad_height = height / 10;
-				width += width / 10;
-				height += pad_height;
 
-				mdl.position.y = pad_height / 2;
+				let scaleFactor = targetHeight / height;
+
+				mdl.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+				bbox.setFromObject(mdl)
+
+				let width = bbox.max.x - bbox.min.x;
+				height = bbox.max.y - bbox.min.y;
+				// const pad_height = height / 10;
+				// width += width / 10;
+				// height += pad_height;
+
+				//mdl.position.y = pad_height / 2;
 
 				let camera = new THREE.OrthographicCamera(
 					-width / 2,
@@ -235,12 +244,12 @@ class GalerieApp {
 						antialias: true,
 						alpha: true,
 					});
-					this.avatarRenderer.setSize(width * 50, height * 50);
+					this.avatarRenderer.setSize(width * 50, height * 50, true);
 					this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
 				}
 				let last = performance.now();
 
-				this.avatarRenderer.setAnimationLoop((time, frame) => {
+				this.avatarRenderer.setAnimationLoop((time) => {
 					const delta = (time - last) / 1000;
 					if (avatar) avatar.rotation.y += delta;
 					anims.update(delta);
@@ -248,34 +257,7 @@ class GalerieApp {
 					last = time;
 				});
 
-				mdl.traverse(o => {
-					if (o.isMesh) {
-						// o.castShadow = true;
-						// o.receiveShadow = true;
-
-						//console.log(o.name);
-						// Hide hat
-						if (o.name === 'Hat') {
-							o.visible = false;
-							// o.renderOrder = -1;
-						}
-					}
-				});
-
-				// Load texture
-				this.textureLoader.load(
-					'img/models/avatars/textures/' + model + '.png',
-					function (texture) {
-						mdl.traverse(o => {
-							if (o.isMesh) {
-								console.debug('set tex', o);
-								o.material.map = texture;
-								o.material.needsUpdate = true;
-							}
-						});
-						scene.add(mdl);
-					}
-				);
+				scene.add(mdl);
 				avatar = mdl;
 			});
 		}
