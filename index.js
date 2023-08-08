@@ -7,7 +7,7 @@ import {
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 //Internal Classes
-import { NoiseGenerator } from './components/NoiseGenerator.js';
+import { NoiseGenerator } from './components/noiseGenerator.js';
 import { RemotePlayer } from './components/RemotePlayer.js';
 import { LocalPlayer } from './components/LocalPlayer.js';
 
