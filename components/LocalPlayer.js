@@ -135,7 +135,7 @@ export class LocalPlayer extends Player {
 	appendSystemMessage(message) {
 		let messageElement = document.createElement('p');
 		messageElement.textContent = `[${new Date().toLocaleTimeString()}] System: ${message}`;
-		messageElement.classList.add('system-message'); // This class can be used to style system messages differently
+		messageElement.classList.add('system-message');
 		messagesContainer.append(messageElement);
 	}
 
@@ -145,7 +145,7 @@ export class LocalPlayer extends Player {
 			messageElement.textContent = `[${new Date(
 				data.timestamp
 			).toLocaleTimeString()}] (Whisper from ${data.sender}): ${data.message}`;
-			messageElement.classList.add('whisper-message'); // This class can be used to style whisper messages differently
+			messageElement.classList.add('whisper-message');
 			messagesContainer.append(messageElement);
 		}
 	}
