@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { io, Socket } from 'socket.io-client';
 import { Player } from './Player.js';
-import { ChatError } from './errors/ChatError.js';
 
 const messagesContainer = document.querySelector('#messages');
 
@@ -66,9 +65,20 @@ export class LocalPlayer extends Player {
 		});
 	}
 
+	requestUsernameCheck(usernameRequested) {
+		// console.log('in requestCheck');
+		// console.log(usernameRequested);
+		return new Promise((resolve, reject) => {
+			this.socket.emit('usernameCheck', usernameRequested, result => {
+				resolve(result);
+			});
+		});
+	}
+
 	// TODO Add information about the player model like colour, character model,...
 	initSocket() {
 		console.log('PlayerLocal.initSocket', this);
+
 		this.socket.emit('init', {
 			model: this.model,
 			name: this.userName,
@@ -84,8 +94,6 @@ export class LocalPlayer extends Player {
 
 	/**@param {THREE.Camera} camera */
 	updatePosition(camera, velocity) {
-		// console.log("Camera: ");
-		// console.log(camera);
 		this.velocity = velocity;
 		if (
 			!camera.position.equals(this.position) ||

@@ -296,8 +296,22 @@ io.on(
 				});
 			} else {
 				// TODO handle error
-				socket.emit('error', `User ${data.targetUserId} not found.`);
+				console.log('error', `User ${data.targetUserId} not found.`);
 			}
+		});
+
+		socket.on('usernameCheck', (requestedUsername, callback) => {
+			let isAvailable = true;
+			for (const client of io.sockets.sockets.values()) {
+				if (client.userData) {
+				}
+
+				if (client.userData && client.userData.name === requestedUsername) {
+					isAvailable = false;
+					break;
+				}
+			}
+			callback(isAvailable);
 		});
 	}
 );

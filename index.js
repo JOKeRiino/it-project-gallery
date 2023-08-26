@@ -286,23 +286,34 @@ class GalerieApp {
 		const blocker = document.getElementById('blocker');
 		const instructions = document.getElementById('instructions');
 
-		instructions.querySelector('form').addEventListener('submit', e => {
+		instructions.querySelector('form').addEventListener('submit', async e => {
 			if (instructions.querySelector('form').checkValidity()) {
 				// To not trigger the chatbox
 				isFormSubmitting = true;
 
-				// TODO: Validate and save player name / model etc.
-				this.player.userName = instructions.querySelector('#playerName').value;
-				this.player.model = instructions.querySelector('#playerModel').value;
-				this.player.initSocket();
-				if (!this.updater)
-					this.updater = setInterval(() => {
-						this.player.updatePosition(this.camera, velocity.length() / 4.3);
-					}, 40);
-				controls.lock();
-				this.avatarRenderer.setAnimationLoop(null);
-				this.avatarRenderer.dispose();
-				this.avatarRenderer = undefined;
+				let usernameRequested = instructions.querySelector('#playerName').value;
+
+				let nameAvailable = await this.player.requestUsernameCheck(
+					usernameRequested
+				);
+				if (nameAvailable) {
+					// TODO: Validate and save player name / model etc.
+					this.player.userName = usernameRequested;
+					this.player.model = instructions.querySelector('#playerModel').value;
+					this.player.initSocket();
+					if (!this.updater)
+						this.updater = setInterval(() => {
+							this.player.updatePosition(this.camera, velocity.length() / 4.3);
+						}, 40);
+					controls.lock();
+					this.avatarRenderer.setAnimationLoop(null);
+					this.avatarRenderer.dispose();
+					this.avatarRenderer = undefined;
+				} else {
+					const errorMessage =
+						'This username is already taken. Please choose another one.';
+					console.log('name schon vergeben');
+				}
 
 				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
 				setTimeout(() => {
