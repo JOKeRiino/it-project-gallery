@@ -30,6 +30,10 @@ const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
 const messageInput = document.querySelector('#message-input');
 const messagesContainer = document.querySelector('#messages');
+
+const playerNameError = document.getElementById('playerNameError');
+const playerNameInput = document.getElementById('playerName');
+
 // Flags indicating the source of the pointerlock events
 let pointerLockForChat = false;
 let pointerLockRegular = true;
@@ -309,10 +313,17 @@ class GalerieApp {
 					this.avatarRenderer.setAnimationLoop(null);
 					this.avatarRenderer.dispose();
 					this.avatarRenderer = undefined;
+
+					playerNameError.style.display = 'none';
+					playerNameInput.style.borderColor = '';
 				} else {
+					// instructions.querySelector('form').reset();
 					const errorMessage =
-						'This username is already taken. Please choose another one.';
-					console.log('name schon vergeben');
+						'*Dieser Nutzername ist bereits vergeben. Bitte wählen Sie einen anderen.';
+					playerNameError.textContent = errorMessage;
+					playerNameError.style.display = 'block';
+					playerNameInput.style.borderColor = 'red';
+					instructions.querySelector('#playerName').focus();
 				}
 
 				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
