@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { io, Socket } from 'socket.io-client';
 import { Player } from './Player.js';
 
+const messagesContainer = document.querySelector('#messages');
+
 export class LocalPlayer extends Player {
 	/**@type {Socket} */
 	socket;
@@ -57,14 +59,29 @@ export class LocalPlayer extends Player {
 			console.log('received msg: ' + data.message + ' from user: ' + data.sender);
 			this.appendMessage(data);
 		});
+
+		socket.on('whisper', data => {
+			this.appendWhisperMessage(data);
+		});
+	}
+
+	requestUsernameCheck(usernameRequested) {
+		// console.log('in requestCheck');
+		// console.log(usernameRequested);
+		return new Promise((resolve, reject) => {
+			this.socket.emit('usernameCheck', usernameRequested, result => {
+				resolve(result);
+			});
+		});
 	}
 
 	// TODO Add information about the player model like colour, character model,...
 	initSocket() {
 		console.log('PlayerLocal.initSocket', this);
+
 		this.socket.emit('init', {
 			model: this.model,
-			name: this.name,
+			name: this.userName,
 			x: this.position.x,
 			y: this.position.y,
 			z: this.position.z,
@@ -77,8 +94,6 @@ export class LocalPlayer extends Player {
 
 	/**@param {THREE.Camera} camera */
 	updatePosition(camera, velocity) {
-		// console.log("Camera: ");
-		// console.log(camera);
 		this.velocity = velocity;
 		if (
 			!camera.position.equals(this.position) ||
@@ -105,11 +120,13 @@ export class LocalPlayer extends Player {
 	}
 
 	sendMessage(message) {
-		console.log('sendMessage(): ' + message);
-		if (this.socket !== undefined) {
-			this.socket.emit('message', {
-				message: message,
-			});
+		if (this.socket === undefined) {
+			throw new Error('Socket is undefined');
+		}
+
+		let isCommand = this.checkCommands(message);
+		if (!isCommand) {
+			this.socket.emit('message', { message: message });
 		}
 	}
 
@@ -121,5 +138,124 @@ export class LocalPlayer extends Player {
 			}: ${data.message}`;
 			messagesContainer.append(message);
 		}
+	}
+
+	appendSystemMessage(message) {
+		let messageElement = document.createElement('p');
+		messageElement.textContent = `[${new Date().toLocaleTimeString()}] System: ${message}`;
+		messageElement.classList.add('system-message');
+		messagesContainer.append(messageElement);
+	}
+
+	appendWhisperMessage(data) {
+		if (data != null) {
+			let messageElement = document.createElement('p');
+			messageElement.textContent = `[${new Date(
+				data.timestamp
+			).toLocaleTimeString()}] (Whisper from ${data.sender}): ${data.message}`;
+			messageElement.classList.add('whisper-message');
+			messagesContainer.append(messageElement);
+		}
+	}
+
+	// TODO display all System messages in different colour
+	checkCommands(message) {
+		if (message.charAt(0) !== '/') {
+			return false;
+		}
+
+		const [command, ...args] = message.substring(1).split(' ');
+
+		switch (command) {
+			case 'tp':
+				if (args.length === 0) {
+					this.appendSystemMessage('Usage: /tp [player name]');
+				} else {
+					try {
+						this.teleportTo(args[0]);
+					} catch (error) {
+						console.log(error);
+						this.appendSystemMessage(error.message);
+					}
+				}
+				break;
+
+			case 'whisper':
+				try {
+					this.whisper(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
+
+			case 'help':
+				const availableCommands = [
+					'/tp [player name] - Teleport to given player.',
+					'/whisper [player name] [message] - Send a private message to a player.',
+				];
+				this.appendSystemMessage(
+					`Available commands:\n${availableCommands.join('\n')}`
+				);
+				break;
+
+			default:
+				this.appendSystemMessage(
+					`Invalid command: ${command}. Type /help to see list of available commands`
+				);
+		}
+
+		return true;
+	}
+
+	teleportTo(target) {
+		if (this.game.player.userName === target) {
+			this.appendSystemMessage('You cannot teleport to yourself.');
+			return;
+		}
+
+		const playersArray = Object.values(this.game.localPlayers);
+		const targetPlayer = playersArray.find(player => player.userName === target);
+
+		if (!targetPlayer) {
+			this.appendSystemMessage(`Player ${target} not found.`);
+			return;
+		}
+
+		this.game.camera.position.copy(targetPlayer.position);
+
+		// Doesnt work perfectly
+		this.game.camera.lookAt(
+			targetPlayer.rotation.x,
+			targetPlayer.rotation.y,
+			targetPlayer.rotation.z
+		);
+	}
+
+	whisper(args) {
+		if (args.length < 2) {
+			this.appendSystemMessage('Usage: /whisper [user] [message]');
+			return;
+		}
+
+		const [target, ...messageParts] = args;
+		const message = messageParts.join(' ');
+
+		if (this.game.player.userName === target) {
+			this.appendSystemMessage('You cannot whisper to yourself.');
+			return;
+		}
+
+		const playersArray = Object.entries(this.game.localPlayers);
+		const targetEntry = playersArray.find(
+			([id, player]) => player.userName === target
+		);
+
+		if (!targetEntry) {
+			this.appendSystemMessage(`Player ${target} not found.`);
+			return;
+		}
+
+		const [targetId, targetPlayer] = targetEntry;
+		this.socket.emit('whisper', { targetUserId: targetId, message: message });
 	}
 }

@@ -30,6 +30,10 @@ const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
 const messageInput = document.querySelector('#message-input');
 const messagesContainer = document.querySelector('#messages');
+
+const playerNameError = document.getElementById('playerNameError');
+const playerNameInput = document.getElementById('playerName');
+
 // Flags indicating the source of the pointerlock events
 let pointerLockForChat = false;
 let pointerLockRegular = true;
@@ -286,23 +290,41 @@ class GalerieApp {
 		const blocker = document.getElementById('blocker');
 		const instructions = document.getElementById('instructions');
 
-		instructions.querySelector('form').addEventListener('submit', e => {
+		instructions.querySelector('form').addEventListener('submit', async e => {
 			if (instructions.querySelector('form').checkValidity()) {
 				// To not trigger the chatbox
 				isFormSubmitting = true;
 
-				// TODO: Validate and save player name / model etc.
-				this.player.name = instructions.querySelector('#playerName').value;
-				this.player.model = instructions.querySelector('#playerModel').value;
-				this.player.initSocket();
-				if (!this.updater)
-					this.updater = setInterval(() => {
-						this.player.updatePosition(this.camera, velocity.length() / 4.3);
-					}, 40);
-				controls.lock();
-				this.avatarRenderer.setAnimationLoop(null);
-				this.avatarRenderer.dispose();
-				this.avatarRenderer = undefined;
+				let usernameRequested = instructions.querySelector('#playerName').value;
+
+				let nameAvailable = await this.player.requestUsernameCheck(
+					usernameRequested
+				);
+				if (nameAvailable) {
+					// TODO: Validate and save player name / model etc.
+					this.player.userName = usernameRequested;
+					this.player.model = instructions.querySelector('#playerModel').value;
+					this.player.initSocket();
+					if (!this.updater)
+						this.updater = setInterval(() => {
+							this.player.updatePosition(this.camera, velocity.length() / 4.3);
+						}, 40);
+					controls.lock();
+					this.avatarRenderer.setAnimationLoop(null);
+					this.avatarRenderer.dispose();
+					this.avatarRenderer = undefined;
+
+					playerNameError.style.display = 'none';
+					playerNameInput.style.borderColor = '';
+				} else {
+					// instructions.querySelector('form').reset();
+					const errorMessage =
+						'*Dieser Nutzername ist bereits vergeben. Bitte wählen Sie einen anderen.';
+					playerNameError.textContent = errorMessage;
+					playerNameError.style.display = 'block';
+					playerNameInput.style.borderColor = 'red';
+					instructions.querySelector('#playerName').focus();
+				}
 
 				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
 				setTimeout(() => {
