@@ -302,11 +302,12 @@ io.on(
 
 		socket.on('usernameCheck', (requestedUsername, callback) => {
 			let isAvailable = true;
-			for (const client of io.sockets.sockets.values()) {
-				if (client.userData) {
-				}
 
-				if (client.userData && client.userData.name === requestedUsername) {
+			for (const client of io.sockets.sockets.values()) {
+				const hasMatchingUsername =
+					client.userData && client.userData.name === requestedUsername;
+
+				if (hasMatchingUsername && client.id !== socket.id) {
 					isAvailable = false;
 					break;
 				}
