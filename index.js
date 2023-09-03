@@ -29,11 +29,7 @@ const instructions = document.getElementById('instructions');
 // const objects = [];
 const cameraBoundingBox = new THREE.Box3();
 const wallBoundingBoxes = [];
-const collObjects = [];
 const playerBoxSize = new THREE.Vector3(1, 4, 1);
-let prevPosition = new THREE.Vector3(50, 3, 50);
-let checkCollision = false;
-let wasInContactWithWall = false;
 // Chatbox selectors
 const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
@@ -385,10 +381,6 @@ class GalerieApp {
 					if (canJump === true) velocity.y += 350;
 					canJump = false;
 					break;
-
-				case 'KeyC':
-					checkCollision = true;
-					break;
 				
 			}
 		};
@@ -428,9 +420,6 @@ class GalerieApp {
 					}
 					break;
 				
-				case 'KeyC':
-					checkCollision = false;
-					break;
 			}
 		};
 
@@ -761,12 +750,6 @@ class GalerieApp {
 			const pillarBoundingBox = new THREE.Box3().setFromObject(galleryWallBoundingMesh);
 			pillarBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
 			wallBoundingBoxes.push(pillarBoundingBox);
-			const helper = new THREE.Box3Helper(pillarBoundingBox, 0x00ff00);
-			this.roomTiles.push(helper)
-			// const galleryWallInstance = galleryWallMesh.clone(); // Create a clone to avoid affecting the original galleryWallMesh
-			// galleryWallInstance.applyMatrix4(mat); // Apply the instance's transformation matrix
-			// const wallBoundingBox = new THREE.Box3().setFromObject(galleryWallInstance);
-			// wallBoundingBoxes.push(wallBoundingBox);
 			
 		};
 
@@ -820,28 +803,7 @@ class GalerieApp {
 			const chairBoundingBox = new THREE.Box3().setFromObject(_origMesh);
 			chairBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
 			wallBoundingBoxes.push(chairBoundingBox);
-			const helper = new THREE.Box3Helper(chairBoundingBox, 0xff0000);
-			this.roomTiles.push(helper)
 
-			//chairBoundingBox.applyMatrix4(mat)
-			//testing bc of weird boundingbox sizes
-			// const chairMeshBoundingBox = new THREE.Box3().setFromObject(_origMesh);
-			// chairMeshBoundingBox.applyMatrix4(mat);
-			
-			// 	// Calculate the dimensions of the bounding box
-			// const chairWidth = chairMeshBoundingBox.max.x - chairMeshBoundingBox.min.x;
-			// const chairHeight = chairMeshBoundingBox.max.y - chairMeshBoundingBox.min.y;
-			// const chairDepth = chairMeshBoundingBox.max.z - chairMeshBoundingBox.min.z;
-
-			// 	// Log the dimensions to the console
-			// console.log('Chair Dimensions:');
-			// console.log('Width: ' + chairWidth);
-			// console.log('Height: ' + chairHeight);
-			// console.log('Depth: ' + chairDepth);
-			// console.log("chair BoundingBox Position:", chairMeshBoundingBox.getCenter(new THREE.Vector3()));
-    		// console.log("chair BoundingBox Size:", chairMeshBoundingBox.getSize(new THREE.Vector3()));
-
-			//collObjects.push(_origMesh);
 
 		};
 		this.roomTiles.push(chairMesh);
@@ -885,17 +847,6 @@ class GalerieApp {
 			const plantBoundingBox = new THREE.Box3().setFromObject(_origPltMesh2);
 			plantBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
 			wallBoundingBoxes.push(plantBoundingBox);
-			const helper = new THREE.Box3Helper(plantBoundingBox, 0xff00ff);
-			this.roomTiles.push(helper);	
-			//this.roomTiles.push(helper)
-			// const plantInstance1 = plantMesh1.clone(); // Create a clone to avoid affecting the original plantMesh1
-			// plantInstance1.applyMatrix4(mat); // Apply the instance's transformation matrix
-			// const plantBoundingBox1 = new THREE.Box3().setFromObject(plantInstance1);
-			// const plantInstance2 = plantMesh2.clone(); // Create a clone to avoid affecting the original plantMesh2
-			// plantInstance2.applyMatrix4(mat); // Apply the instance's transformation matrix
-			// const plantBoundingBox2 = new THREE.Box3().setFromObject(plantInstance2);
-			// wallBoundingBoxes.push(plantBoundingBox1);
-			// wallBoundingBoxes.push(plantBoundingBox2);
 		};
 		this.roomTiles.push(plantMesh1, plantMesh2);
 		let plantIndex = 0;
@@ -956,12 +907,6 @@ class GalerieApp {
 			const wallBoundingBox = new THREE.Box3().setFromObject(wallGeometryBoundingMesh);
 			wallBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
 			wallBoundingBoxes.push(wallBoundingBox);
-			const helper = new THREE.Box3Helper(wallBoundingBox, 0x0000ff);
-			this.roomTiles.push(helper);
-			// const outerWallInstance = wallMesh.clone(); // Create a clone to avoid affecting the original wallMesh
-			// outerWallInstance.applyMatrix4(mat); // Apply the instance's transformation matrix
-			// const outerWallBoundingBox = new THREE.Box3().setFromObject(outerWallInstance);
-			// wallBoundingBoxes.push(outerWallBoundingBox);
 		};
 
 		for (let y = 0; y < matrix.length; y++) {
@@ -1295,18 +1240,9 @@ class GalerieApp {
 
 						this.camera.position.y = originalY;
 					
-						}
-					else {
-							
-						//prevPosition = this.camera.getWorldPosition(new THREE.Vector3());
-						//console.log(prevPosition.x);
-						//console.log(prevPosition.y);
-						//console.log(prevPosition);
-					}
-					
+						}					
 				}
 				
-
 				console.log("check done: " + counter + " boundingboxes checked");
 
 				if(counter === 0){
@@ -1318,8 +1254,8 @@ class GalerieApp {
 					direction.x = Number(moveRight) - Number(moveLeft);
 					direction.normalize(); // this ensures consistent movements in all directions
 
-					if (moveForward || moveBackward) velocity.z -= direction.z * 40.0 * delta;
-					if (moveLeft || moveRight) velocity.x -= direction.x * 40.0 * delta;
+					if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
+					if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
 
 					
 					controls.moveRight(-velocity.x * delta);
