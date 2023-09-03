@@ -22,9 +22,7 @@ export class LocalPlayer extends Player {
 		this.rotation = startingPosition.rotation.clone();
 
 		socket.on('connect', function () {
-			//console.log(socket.id);
 			localPlayer.id = socket.id;
-			//localPlayer.initSocket();
 			socket.emit('players');
 		});
 
@@ -66,8 +64,6 @@ export class LocalPlayer extends Player {
 	}
 
 	requestUsernameCheck(usernameRequested) {
-		// console.log('in requestCheck');
-		// console.log(usernameRequested);
 		return new Promise((resolve, reject) => {
 			this.socket.emit('usernameCheck', usernameRequested, result => {
 				resolve(result);
@@ -75,7 +71,6 @@ export class LocalPlayer extends Player {
 		});
 	}
 
-	// TODO Add information about the player model like colour, character model,...
 	initSocket() {
 		console.log('PlayerLocal.initSocket', this);
 
@@ -158,7 +153,6 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	// TODO display all System messages in different colour
 	checkCommands(message) {
 		if (message.charAt(0) !== '/') {
 			return false;

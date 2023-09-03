@@ -93,9 +93,7 @@ async function scrapeData(url) {
 		const { data } = await axios.get(url + pagination);
 		const $ = cheerio.load(data);
 		pageElements = $('.pcdesktop');
-		//console.log(url + pagination);
 		pageElements.each((idx, el) => {
-			//console.log('Page ' + count + ' of 8. Scraping element ' + idx);
 			let wp_id = +/photo_id=([0-9]+)/.exec(
 				$(el).children('.imagebox').children('a').attr('href')
 			)[1];
@@ -180,7 +178,6 @@ io.on(
 				let players = [];
 
 				for (const [_, socket] of io.of('/').sockets) {
-					// console.log(socket);
 					if (socket.changed) {
 						let pl = {
 							id: socket.id,
@@ -223,7 +220,6 @@ io.on(
 			console.log(`socket init ${socket.id}`);
 			socket.userData = {
 				model: data.model,
-				// colour: data.colour,
 				x: data.x,
 				y: data.y,
 				z: data.z,
@@ -238,7 +234,6 @@ io.on(
 		});
 
 		socket.on('update', function (data) {
-			// console.log(`socket update ${socket.id}`);
 			socket.userData.x = data.x;
 			socket.userData.y = data.y;
 			socket.userData.z = data.z;
@@ -256,7 +251,6 @@ io.on(
 
 			for (const [_, socket] of io.of('/').sockets) {
 				if (!socket.userData) continue;
-				// console.log(socket);
 				players.push({
 					id: socket.id,
 					name: socket.userData.name,
@@ -295,7 +289,6 @@ io.on(
 					sender: username,
 				});
 			} else {
-				// TODO handle error
 				console.log('error', `User ${data.targetUserId} not found.`);
 			}
 		});
