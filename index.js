@@ -25,11 +25,15 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
-const objects = [];
-let raycasterz1;
-let raycasterz2;
-let raycasterx1;
-let raycasterx2;
+//coll teststuff
+// const objects = [];
+const cameraBoundingBox = new THREE.Box3();
+const wallBoundingBoxes = [];
+const collObjects = [];
+const playerBoxSize = new THREE.Vector3(1, 4, 1);
+let prevPosition = new THREE.Vector3(50, 3, 50);
+let checkCollision = false;
+let wasInContactWithWall = false;
 // Chatbox selectors
 const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
@@ -100,6 +104,7 @@ class GalerieApp {
 			loadingScreen.style.display = 'none';
 		});
 	}
+
 
 	//Create and maintain Renderer, Camera, and Scene
 	initializeRenderer_() {
@@ -380,6 +385,11 @@ class GalerieApp {
 					if (canJump === true) velocity.y += 350;
 					canJump = false;
 					break;
+
+				case 'KeyC':
+					checkCollision = true;
+					break;
+				
 			}
 		};
 
@@ -417,8 +427,14 @@ class GalerieApp {
 						toggleChatbox();
 					}
 					break;
+				
+				case 'KeyC':
+					checkCollision = false;
+					break;
 			}
 		};
+
+		
 
 		function toggleChatbox() {
 			chatbox.classList.toggle('visible');
@@ -448,6 +464,7 @@ class GalerieApp {
 		document.addEventListener('keyup', onKeyUp);
 	}
 
+
 	//Creating the sky and the lights
 	initializeSkyBoxAndLights_() {
 		//SKY
@@ -469,11 +486,11 @@ class GalerieApp {
 		dirLight.position.set(75, 300, -75);
 		this.scene.add(dirLight);
 
-		//(temporary)other
-		this.raycasterz1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ), 0, 3 );
-		this.raycasterz2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 3 );
-		this.raycasterx1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 1, 0, 0 ), 0, 3 );
-		this.raycasterx2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( -1, 0, 0 ), 0, 3 );
+		//coll teststuff
+		// this.raycasterz1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ), 0, 3 );
+		// this.raycasterz2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 3 );
+		// this.raycasterx1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 1, 0, 0 ), 0, 3 );
+		// this.raycasterx2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( -1, 0, 0 ), 0, 3 );
 	}
 
 	/**
@@ -503,6 +520,8 @@ class GalerieApp {
 		} catch (e) {
 			console.error(e);
 		}
+
+		console.log(this.roomTiles);
 
 		this.roomTiles.forEach(r => {
 			if (r.name === 'plaque') console.debug(r);
@@ -724,6 +743,7 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
+		const galleryWallBoundingMesh = new THREE.Mesh(galleryWallGeometry, galleryWallMaterial);
 		galleryWallMesh.layers.enable(1);
 		galleryWallMesh.name = 'galleryWall';
 		this.roomTiles.push(galleryWallMesh);
@@ -736,6 +756,18 @@ class GalerieApp {
 				y * boxWidth
 			);
 			galleryWallMesh.setMatrixAt(galleryWallIndex++, mat);
+
+			// Bounding box for collision
+			const pillarBoundingBox = new THREE.Box3().setFromObject(galleryWallBoundingMesh);
+			pillarBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(pillarBoundingBox);
+			const helper = new THREE.Box3Helper(pillarBoundingBox, 0x00ff00);
+			this.roomTiles.push(helper)
+			// const galleryWallInstance = galleryWallMesh.clone(); // Create a clone to avoid affecting the original galleryWallMesh
+			// galleryWallInstance.applyMatrix4(mat); // Apply the instance's transformation matrix
+			// const wallBoundingBox = new THREE.Box3().setFromObject(galleryWallInstance);
+			// wallBoundingBoxes.push(wallBoundingBox);
+			
 		};
 
 		//deco loading + placement funcs
@@ -783,6 +815,34 @@ class GalerieApp {
 			);
 
 			chairMesh.setMatrixAt(chairIndex++, mat);
+
+			// Bounding box for collision
+			const chairBoundingBox = new THREE.Box3().setFromObject(_origMesh);
+			chairBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(chairBoundingBox);
+			const helper = new THREE.Box3Helper(chairBoundingBox, 0xff0000);
+			this.roomTiles.push(helper)
+
+			//chairBoundingBox.applyMatrix4(mat)
+			//testing bc of weird boundingbox sizes
+			// const chairMeshBoundingBox = new THREE.Box3().setFromObject(_origMesh);
+			// chairMeshBoundingBox.applyMatrix4(mat);
+			
+			// 	// Calculate the dimensions of the bounding box
+			// const chairWidth = chairMeshBoundingBox.max.x - chairMeshBoundingBox.min.x;
+			// const chairHeight = chairMeshBoundingBox.max.y - chairMeshBoundingBox.min.y;
+			// const chairDepth = chairMeshBoundingBox.max.z - chairMeshBoundingBox.min.z;
+
+			// 	// Log the dimensions to the console
+			// console.log('Chair Dimensions:');
+			// console.log('Width: ' + chairWidth);
+			// console.log('Height: ' + chairHeight);
+			// console.log('Depth: ' + chairDepth);
+			// console.log("chair BoundingBox Position:", chairMeshBoundingBox.getCenter(new THREE.Vector3()));
+    		// console.log("chair BoundingBox Size:", chairMeshBoundingBox.getSize(new THREE.Vector3()));
+
+			//collObjects.push(_origMesh);
+
 		};
 		this.roomTiles.push(chairMesh);
 		let chairIndex = 0;
@@ -820,6 +880,22 @@ class GalerieApp {
 
 			plantMesh1.setMatrixAt(plantIndex, mat);
 			plantMesh2.setMatrixAt(plantIndex++, mat);
+
+			// Bounding boxes for collision
+			const plantBoundingBox = new THREE.Box3().setFromObject(_origPltMesh2);
+			plantBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(plantBoundingBox);
+			const helper = new THREE.Box3Helper(plantBoundingBox, 0xff00ff);
+			this.roomTiles.push(helper);	
+			//this.roomTiles.push(helper)
+			// const plantInstance1 = plantMesh1.clone(); // Create a clone to avoid affecting the original plantMesh1
+			// plantInstance1.applyMatrix4(mat); // Apply the instance's transformation matrix
+			// const plantBoundingBox1 = new THREE.Box3().setFromObject(plantInstance1);
+			// const plantInstance2 = plantMesh2.clone(); // Create a clone to avoid affecting the original plantMesh2
+			// plantInstance2.applyMatrix4(mat); // Apply the instance's transformation matrix
+			// const plantBoundingBox2 = new THREE.Box3().setFromObject(plantInstance2);
+			// wallBoundingBoxes.push(plantBoundingBox1);
+			// wallBoundingBoxes.push(plantBoundingBox2);
 		};
 		this.roomTiles.push(plantMesh1, plantMesh2);
 		let plantIndex = 0;
@@ -831,6 +907,7 @@ class GalerieApp {
 			wallMaterial,
 			numOuterWalls
 		);
+		const wallGeometryBoundingMesh = new THREE.Mesh(wallGeometry,	wallMaterial);
 		wallMesh.layers.enable(1);
 		wallMesh.name = 'outerWall';
 		this.roomTiles.push(wallMesh);
@@ -874,6 +951,17 @@ class GalerieApp {
 			}
 			mat.compose(pos, quaternion, new THREE.Vector3(1, 1, 1));
 			wallMesh.setMatrixAt(outerWallIndex++, mat);
+
+			// Bounding boxes for collision
+			const wallBoundingBox = new THREE.Box3().setFromObject(wallGeometryBoundingMesh);
+			wallBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(wallBoundingBox);
+			const helper = new THREE.Box3Helper(wallBoundingBox, 0x0000ff);
+			this.roomTiles.push(helper);
+			// const outerWallInstance = wallMesh.clone(); // Create a clone to avoid affecting the original wallMesh
+			// outerWallInstance.applyMatrix4(mat); // Apply the instance's transformation matrix
+			// const outerWallBoundingBox = new THREE.Box3().setFromObject(outerWallInstance);
+			// wallBoundingBoxes.push(outerWallBoundingBox);
 		};
 
 		for (let y = 0; y < matrix.length; y++) {
@@ -1170,65 +1258,82 @@ class GalerieApp {
 			Object.values(this.localPlayers).forEach(p => {
 				p.anims?.update(delta);
 			});
+			
+			cameraBoundingBox.setFromCenterAndSize(this.camera.getWorldPosition(new THREE.Vector3()), playerBoxSize);
+			
+			// console.log("Camera Position:", this.camera.position);
+			// console.log("Player Box Size:", playerBoxSize);
+			// console.log("Camera BoundingBox:", cameraBoundingBox);
+
+			let counter = 0;
 
 			if (controls.isLocked === true) {
-				this.raycasterz1.ray.origin.copy(controls.getObject().position);
-				this.raycasterz2.ray.origin.copy(controls.getObject().position);
-				this.raycasterx1.ray.origin.copy(controls.getObject().position);
-				this.raycasterx2.ray.origin.copy(controls.getObject().position);
 
-				//raycaster.ray.origin.y -= 10;
+				const originalY = this.camera.position.y;
 
-				const intersectionsz1 = this.raycasterz1.intersectObjects( this.roomTiles, false );
-				const intersectionsz2 = this.raycasterz2.intersectObjects( this.roomTiles, false );
-				const intersectionsx1 = this.raycasterx1.intersectObjects( this.roomTiles, false );
-				const intersectionsx2 = this.raycasterx2.intersectObjects( this.roomTiles, false );
+				// Check for collisions with each wall bounding box
+				for (const wallBoundingBox of wallBoundingBoxes) {
+										
+					if (cameraBoundingBox.intersectsBox(wallBoundingBox)) {						
+						
+						// Handle collision
+						velocity.x = 0.001; // Stop movement in the x direction
+						velocity.z = 0.001; // Stop movement in the z direction
+						moveForward = false;
+            			moveBackward = false;
+            			moveLeft = false;
+            			moveRight = false;
+						counter++;
+						console.log("collision");
 
-				const onObjectz1 = intersectionsz1.length > 0;
-				const onObjectz2 = intersectionsz2.length > 0;
-				const onObjectx1 = intersectionsx1.length > 0;
-				const onObjectx2 = intersectionsx2.length > 0;
+						// Calculate the direction to move away from the wall
 
-				// console.log(onObjectz1);
-				// console.log(onObjectz2);
-				// console.log(onObjectx1);
-				// console.log(onObjectx2);
+						const awayDirection = this.camera.position.clone().sub(wallBoundingBox.getCenter(new THREE.Vector3())).normalize();
+						
+						// Move the camera away from the wall
+						this.camera.position.add(awayDirection.multiplyScalar(0.05));
 
-				if ( onObjectz1 === true && velocity.z>0 ) {
-					velocity.z = 0;
+						this.camera.position.y = originalY;
+					
+						}
+					else {
+							
+						//prevPosition = this.camera.getWorldPosition(new THREE.Vector3());
+						//console.log(prevPosition.x);
+						//console.log(prevPosition.y);
+						//console.log(prevPosition);
 					}
-				if ( onObjectz2 === true && velocity.z<0 ) {
-					velocity.z = 0;
-					}
-				if ( onObjectx1 === true && velocity.x>0) {
-					velocity.x = 0;
-					}
-				if ( onObjectx2 === true && velocity.x<0 ) {
-					velocity.x = 0;
-					}
+					
+				}
+				
 
-				velocity.x -= velocity.x * 10.0 * delta;
-				velocity.z -= velocity.z * 10.0 * delta;
-				//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
-				direction.z = Number(moveForward) - Number(moveBackward);
-				direction.x = Number(moveRight) - Number(moveLeft);
-				direction.normalize(); // this ensures consistent movements in all directions
+				console.log("check done: " + counter + " boundingboxes checked");
 
-				if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
-				if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
+				if(counter === 0){
+					console.log("moving");
+					velocity.x -= velocity.x * 10.0 * delta;
+					velocity.z -= velocity.z * 10.0 * delta;
+					//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
+					direction.z = Number(moveForward) - Number(moveBackward);
+					direction.x = Number(moveRight) - Number(moveLeft);
+					direction.normalize(); // this ensures consistent movements in all directions
 
-				// if ( onObject === true ) {
-				// 	velocity.y = Math.max( 0, velocity.y );
-				// 	canJump = true;
-				// }
-				controls.moveRight(-velocity.x * delta);
-				controls.moveForward(-velocity.z * delta);
+					if (moveForward || moveBackward) velocity.z -= direction.z * 40.0 * delta;
+					if (moveLeft || moveRight) velocity.x -= direction.x * 40.0 * delta;
+
+					
+					controls.moveRight(-velocity.x * delta);
+					controls.moveForward(-velocity.z * delta);
+				}
+								
 			}
 			this.renderer.render(this.scene, this.camera);
 			this.cssRenderer.render(this.scene, this.camera);
 			prevTime = time;
 		});
 	}
+
+	
 
 	//FPS and RAM stats
 	_DEVSTATS_() {
