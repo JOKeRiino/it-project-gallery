@@ -318,6 +318,13 @@ p {
 	font-weight: normal;
 }
 
+.pictureLabel p {
+	color: #757e87;
+	font-size: 0.8rem;
+	font-weight: normal;
+	margin-top: 1rem;
+}
+
 .error-message {
 	color: red;
 	display: none;
