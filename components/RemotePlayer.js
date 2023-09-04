@@ -81,7 +81,7 @@ export class RemotePlayer extends Player {
 
 				model.scale.set(0.02, 0.02, 0.02);
 				// mixamo model is rotated inverse to the camera view
-				model.rotateY(Math.PI);
+				//model.rotateY(Math.PI);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
@@ -148,7 +148,7 @@ export class RemotePlayer extends Player {
 
 				model.scale.set(0.02, 0.02, 0.02);
 				// mixamo model is rotated inverse to the camera view
-				model.rotateY(Math.PI);
+				//model.rotateY(Math.PI);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
