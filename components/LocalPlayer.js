@@ -192,6 +192,14 @@ export class LocalPlayer extends Player {
 				);
 				break;
 
+			case 'vote':
+				try {
+					this.vote(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
+
 			default:
 				this.appendSystemMessage(
 					`Invalid command: ${command}. Type /help to see list of available commands`
@@ -251,5 +259,13 @@ export class LocalPlayer extends Player {
 
 		const [targetId, targetPlayer] = targetEntry;
 		this.socket.emit('whisper', { targetUserId: targetId, message: message });
+	}
+
+	vote(args) {
+		console.log('You voted for' + args);
+		this.appendSystemMessage(
+			`Player '${this.game.player.userName}' voted for an image!`
+		);
+		//this.socket.emit('vote_update', args);
 	}
 }
