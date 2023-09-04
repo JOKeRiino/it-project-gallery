@@ -38,6 +38,97 @@ const messagesContainer = document.querySelector('#messages');
 
 const playerNameError = document.getElementById('playerNameError');
 const playerNameInput = document.getElementById('playerName');
+var adjective = [
+	'Excited',
+	'Anxious',
+	'Overweight',
+	'Demonic',
+	'Jumpy',
+	'Misunderstood',
+	'Squashed',
+	'Gargantuan',
+	'Broad',
+	'Crooked',
+	'Curved',
+	'Deep',
+	'Even',
+	'Excited',
+	'Anxious',
+	'Overweight',
+	'Demonic',
+	'Jumpy',
+	'Misunderstood',
+	'Squashed',
+	'Gargantuan',
+	'Broad',
+	'Crooked',
+	'Curved',
+	'Deep',
+	'Even',
+	'Flat',
+	'Hilly',
+	'Jagged',
+	'Round',
+	'Shallow',
+	'Square',
+	'Steep',
+	'Straight',
+	'Thick',
+	'Thin',
+	'Cooing',
+	'Deafening',
+	'Faint',
+	'Harsh',
+	'High-pitched',
+	'Hissing',
+	'Hushed',
+	'Husky',
+	'Loud',
+	'Melodic',
+	'Moaning',
+	'Mute',
+	'Noisy',
+	'Purring',
+	'Quiet',
+	'Raspy',
+	'Screeching',
+	'Shrill',
+	'Silent',
+	'Soft',
+	'Squeaky',
+	'Squealing',
+	'Thundering',
+	'Voiceless',
+	'Whispering',
+];
+var object = [
+	'Taco',
+	'OperatingSystem',
+	'Sphere',
+	'Watermelon',
+	'Cheeseburger',
+	'ApplePie',
+	'Spider',
+	'Dragon',
+	'RemoteControl',
+	'Soda',
+	'Watch',
+	'PurplePen',
+	'DollarBill',
+	'StuffedAnimal',
+	'Hair Clip',
+	'Sunglasses',
+	'T-shirt',
+	'Purse',
+	'Towel',
+	'Hat',
+	'Camera',
+	'HandSanitizerBottle',
+	'Photo',
+	'DogBone',
+	'HairBrush',
+	'BirthdayCard',
+];
 
 // Flags indicating the source of the pointerlock events
 let pointerLockForChat = false;
@@ -160,9 +251,11 @@ class GalerieApp {
 		this.pictureLabelElem = document.createElement('div');
 		let pictureLabelAuthor = document.createElement('h2');
 		let pictureLabelTitle = document.createElement('h3');
+		let pictureLabelVoting = document.createElement('p');
 		this.pictureLabelElem.className = 'pictureLabel';
 		this.pictureLabelElem.appendChild(pictureLabelAuthor);
 		this.pictureLabelElem.appendChild(pictureLabelTitle);
+		this.pictureLabelElem.appendChild(pictureLabelVoting);
 		this.pictureLabel = new CSS2DObject(this.pictureLabelElem);
 		this.pictureLabel.position.set(0, 0, 0);
 		this.pictureLabel.visible = false;
@@ -291,6 +384,10 @@ class GalerieApp {
 		controls = new PointerLockControls(this.camera, document.body);
 		const blocker = document.getElementById('blocker');
 		const instructions = document.getElementById('instructions');
+
+		playerNameInput.value =
+			adjective[Math.floor(Math.random() * adjective.length)] +
+			object[Math.floor(Math.random() * object.length)];
 
 		instructions.querySelector('form').addEventListener('submit', async e => {
 			if (instructions.querySelector('form').checkValidity()) {
@@ -1006,6 +1103,7 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							voting_id: images[imageCount].voting_id,
 						});
 						oneWallGroup.add(canvasMesh);
 						placePlaque(x, y, 'p1');
@@ -1039,6 +1137,7 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							voting_id: images[imageCount].voting_id,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(canvasMesh);
@@ -1083,6 +1182,7 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							voting_id: images[imageCount].voting_id,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(canvasMesh);
@@ -1235,6 +1335,7 @@ class GalerieApp {
 				this.pictureLabel.element.children[0].innerText =
 					'"' + foundElement.title + '"';
 				this.pictureLabel.element.children[1].innerText = foundElement.author;
+				this.pictureLabel.element.children[2].innerText = `Vote for this image by typing '/vote ${foundElement.voting_id}' in chat!`;
 				this.pictureLabel.visible = true;
 			}
 		} else {
