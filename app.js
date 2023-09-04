@@ -41,7 +41,7 @@ app.get('/scrapeImages', (req, res) => {
 	const last_mod = exists
 		? fs.statSync('imageData.json').mtime
 		: new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0));
-	const GRACE_PERIOD = 24 * 60 * 60 * 1000; // 1 day
+	const GRACE_PERIOD = 0 *24 * 60 * 60 * 1000; // 1 day
 
 	// client-side caching of response the same time the server caches the results.
 
