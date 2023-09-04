@@ -29,7 +29,7 @@ const instructions = document.getElementById('instructions');
 // const objects = [];
 const cameraBoundingBox = new THREE.Box3();
 const wallBoundingBoxes = [];
-const playerBoxSize = new THREE.Vector3(1, 4, 1);
+const playerBoxSize = new THREE.Vector3(2.5, 4, 1);
 // Chatbox selectors
 const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
@@ -1286,7 +1286,7 @@ class GalerieApp {
 							.normalize();
 
 						// Move the camera away from the wall
-						this.camera.position.add(awayDirection.multiplyScalar(0.05));
+						this.camera.position.add(awayDirection.multiplyScalar(0.005));
 
 						this.camera.position.y = originalY;
 					}
