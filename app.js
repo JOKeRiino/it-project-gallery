@@ -128,6 +128,10 @@ async function scrapeData(url) {
 		img.url = targetImage.source_url;
 	});
 
+	for (var i = 0; i < images.length; i++) {
+		images[i].voting_id = i;
+	}
+
 	fs.writeFile('imageData.json', JSON.stringify(images, null, 2), err => {
 		if (err) {
 			console.log(err);
