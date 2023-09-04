@@ -25,7 +25,7 @@ export class RemotePlayer extends Player {
 		name.className = 'player-name';
 
 		this.nameTag = new CSS2DObject(name);
-		this.nameTag.position.set(0, 3, 0);
+		this.nameTag.position.set(0, 4, 0);
 
 		/**@type{Object.<string,THREE.AnimationAction>} */
 		this.availableAnimations = {
@@ -39,29 +39,49 @@ export class RemotePlayer extends Player {
 		// Format Fbx 7.4
 		// Skin: Without Skin
 		this.loader.load(
-			`${startingPosition.model}.fbx`,
+			`img/models/avatars/${startingPosition.model}.fbx`,
 			model => {
 				this.anims = new THREE.AnimationMixer(model);
-				this.availableAnimations.IDLE = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('idle'))
+				this.loader.load('img/models/animations/Idle.fbx', data => {
+					this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
+					this.availableAnimations.IDLE.setEffectiveWeight(1);
+					this.availableAnimations.IDLE.play();
+				});
+				this.loader.load('img/models/animations/Walking.fbx', data => {
+					this.availableAnimations.WALKING = this.anims.clipAction(
+						data.animations[0]
+					);
+					this.availableAnimations.WALKING.setEffectiveWeight(0);
+					this.availableAnimations.WALKING.play();
+				});
+				model.traverse(o => {
+					if (o.isMesh) {
+						o.castShadow = true;
+						o.receiveShadow = true;
+
+						// Hide hat
+						if (o.name === 'Hat') {
+							o.visible = false;
+						}
+					}
+				});
+
+				// Load texture
+				this.textureLoader.load(
+					`img/models/avatars/textures/${startingPosition.model}.png`,
+					function (texture) {
+						model.traverse(o => {
+							if (o.isMesh) {
+								o.material.map = texture;
+								o.material.needsUpdate = true;
+							}
+						});
+					}
 				);
-				this.availableAnimations.IDLE.setEffectiveWeight(1);
-				this.availableAnimations.IDLE.play();
 
-				this.availableAnimations.WALKING = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('walk'))
-				);
-				this.availableAnimations.WALKING.setEffectiveWeight(0);
-				this.availableAnimations.WALKING.play();
-
-				let bbox = new THREE.Box3();
-				bbox.setFromObject(model);
-				const targetHeight = 3.15;
-				let modelHeight = bbox.max.y - bbox.min.y;
-
-				let scaleFactor = targetHeight / modelHeight;
-
-				model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+				model.scale.set(0.02, 0.02, 0.02);
+				// mixamo model is rotated inverse to the camera view
+				model.rotateY(Math.PI);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
@@ -92,29 +112,43 @@ export class RemotePlayer extends Player {
 			this.avatar = position.model;
 			delete position.model;
 			this.game.scene.remove(this.model);
-			this.loader.load(`${this.avatar}.fbx`, model => {
+			this.loader.load(`img/models/avatars/${this.avatar}.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
+				let avan = this.availableAnimations;
 				this.availableAnimations = {};
-				this.availableAnimations.IDLE = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('idle'))
+				console.debug(avan);
+				Object.entries(avan).forEach(([k, v]) => {
+					this.availableAnimations[k] = this.anims.clipAction(v.getClip());
+					this.availableAnimations[k].play();
+				});
+				model.traverse(o => {
+					if (o.isMesh) {
+						o.castShadow = true;
+						o.receiveShadow = true;
+
+						// Hide hat
+						if (o.name === 'Hat') {
+							o.visible = false;
+						}
+					}
+				});
+
+				// Load texture
+				this.textureLoader.load(
+					`img/models/avatars/textures/${this.avatar}.png`,
+					function (texture) {
+						model.traverse(o => {
+							if (o.isMesh) {
+								o.material.map = texture;
+								o.material.needsUpdate = true;
+							}
+						});
+					}
 				);
-				//this.availableAnimations.IDLE.setEffectiveWeight(1);
-				this.availableAnimations.IDLE.play();
 
-				this.availableAnimations.WALKING = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('walk'))
-				);
-				//this.availableAnimations.WALKING.setEffectiveWeight(0);
-				this.availableAnimations.WALKING.play();
-
-				let bbox = new THREE.Box3();
-				bbox.setFromObject(model);
-				const targetHeight = 3.15;
-				let modelHeight = bbox.max.y - bbox.min.y;
-
-				let scaleFactor = targetHeight / modelHeight;
-
-				model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+				model.scale.set(0.02, 0.02, 0.02);
+				// mixamo model is rotated inverse to the camera view
+				//model.rotateY(Math.PI);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);

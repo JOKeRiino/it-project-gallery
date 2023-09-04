@@ -16,9 +16,7 @@ export class Player {
 	/**@param {GalerieApp} game */
 	constructor(game) {
 		this.game = game;
-		this.loader = new FBXLoader(game.loadingManager)
-		this.loader.setPath('img/models/avatars/')
-		this.loader.setResourcePath('img/models/avatars/textures/');
+		this.loader = new FBXLoader(game.loadingManager);
 		this.textureLoader = new THREE.TextureLoader(game.loadingManager);
 	}
 }
