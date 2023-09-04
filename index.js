@@ -25,11 +25,111 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
+//coll teststuff
+// const objects = [];
+const cameraBoundingBox = new THREE.Box3();
+const wallBoundingBoxes = [];
+const playerBoxSize = new THREE.Vector3(2, 4, 1);
 // Chatbox selectors
 const chatbox = document.querySelector('#chatbox');
 const chatIcon = document.querySelector('#chat-icon');
 const messageInput = document.querySelector('#message-input');
 const messagesContainer = document.querySelector('#messages');
+
+const playerNameError = document.getElementById('playerNameError');
+const playerNameInput = document.getElementById('playerName');
+var adjective = [
+	'Excited',
+	'Anxious',
+	'Overweight',
+	'Demonic',
+	'Jumpy',
+	'Misunderstood',
+	'Squashed',
+	'Gargantuan',
+	'Broad',
+	'Crooked',
+	'Curved',
+	'Deep',
+	'Even',
+	'Excited',
+	'Anxious',
+	'Overweight',
+	'Demonic',
+	'Jumpy',
+	'Misunderstood',
+	'Squashed',
+	'Gargantuan',
+	'Broad',
+	'Crooked',
+	'Curved',
+	'Deep',
+	'Even',
+	'Flat',
+	'Hilly',
+	'Jagged',
+	'Round',
+	'Shallow',
+	'Square',
+	'Steep',
+	'Straight',
+	'Thick',
+	'Thin',
+	'Cooing',
+	'Deafening',
+	'Faint',
+	'Harsh',
+	'High-pitched',
+	'Hissing',
+	'Hushed',
+	'Husky',
+	'Loud',
+	'Melodic',
+	'Moaning',
+	'Mute',
+	'Noisy',
+	'Purring',
+	'Quiet',
+	'Raspy',
+	'Screeching',
+	'Shrill',
+	'Silent',
+	'Soft',
+	'Squeaky',
+	'Squealing',
+	'Thundering',
+	'Voiceless',
+	'Whispering',
+];
+var object = [
+	'Taco',
+	'OperatingSystem',
+	'Sphere',
+	'Watermelon',
+	'Cheeseburger',
+	'ApplePie',
+	'Spider',
+	'Dragon',
+	'RemoteControl',
+	'Soda',
+	'Watch',
+	'PurplePen',
+	'DollarBill',
+	'StuffedAnimal',
+	'Hair Clip',
+	'Sunglasses',
+	'T-shirt',
+	'Purse',
+	'Towel',
+	'Hat',
+	'Camera',
+	'HandSanitizerBottle',
+	'Photo',
+	'DogBone',
+	'HairBrush',
+	'BirthdayCard',
+];
+
 // Flags indicating the source of the pointerlock events
 let pointerLockForChat = false;
 let pointerLockRegular = true;
@@ -48,7 +148,6 @@ const direction = new THREE.Vector3();
 
 class GalerieApp {
 	constructor() {
-		// TODO: In the future we might have to change the z rotation
 		// Initialize local player
 		this.startingPosition = {
 			position: new THREE.Vector3(2, 3, 0),
@@ -152,9 +251,11 @@ class GalerieApp {
 		this.pictureLabelElem = document.createElement('div');
 		let pictureLabelAuthor = document.createElement('h2');
 		let pictureLabelTitle = document.createElement('h3');
+		let pictureLabelVoting = document.createElement('p');
 		this.pictureLabelElem.className = 'pictureLabel';
 		this.pictureLabelElem.appendChild(pictureLabelAuthor);
 		this.pictureLabelElem.appendChild(pictureLabelTitle);
+		this.pictureLabelElem.appendChild(pictureLabelVoting);
 		this.pictureLabel = new CSS2DObject(this.pictureLabelElem);
 		this.pictureLabel.position.set(0, 0, 0);
 		this.pictureLabel.visible = false;
@@ -268,23 +369,43 @@ class GalerieApp {
 		const blocker = document.getElementById('blocker');
 		const instructions = document.getElementById('instructions');
 
-		instructions.querySelector('form').addEventListener('submit', e => {
+		playerNameInput.value =
+			adjective[Math.floor(Math.random() * adjective.length)] +
+			object[Math.floor(Math.random() * object.length)];
+
+		instructions.querySelector('form').addEventListener('submit', async e => {
 			if (instructions.querySelector('form').checkValidity()) {
 				// To not trigger the chatbox
 				isFormSubmitting = true;
 
-				// TODO: Validate and save player name / model etc.
-				this.player.name = instructions.querySelector('#playerName').value;
-				this.player.model = instructions.querySelector('#playerModel').value;
-				this.player.initSocket();
-				if (!this.updater)
-					this.updater = setInterval(() => {
-						this.player.updatePosition(this.camera, velocity.length() / 4.3);
-					}, 40);
-				controls.lock();
-				this.avatarRenderer.setAnimationLoop(null);
-				this.avatarRenderer.dispose();
-				this.avatarRenderer = undefined;
+				let usernameRequested = instructions.querySelector('#playerName').value;
+
+				let nameAvailable = await this.player.requestUsernameCheck(
+					usernameRequested
+				);
+				if (nameAvailable) {
+					this.player.userName = usernameRequested;
+					this.player.model = instructions.querySelector('#playerModel').value;
+					this.player.initSocket();
+					if (!this.updater)
+						this.updater = setInterval(() => {
+							this.player.updatePosition(this.camera, velocity.length() / 4.3);
+						}, 40);
+					controls.lock();
+					this.avatarRenderer.setAnimationLoop(null);
+					this.avatarRenderer.dispose();
+					this.avatarRenderer = undefined;
+
+					playerNameError.style.display = 'none';
+					playerNameInput.style.borderColor = '';
+				} else {
+					const errorMessage =
+						'*Dieser Nutzername ist bereits vergeben. Bitte wählen Sie einen anderen.';
+					playerNameError.textContent = errorMessage;
+					playerNameError.style.display = 'block';
+					playerNameInput.style.borderColor = 'red';
+					instructions.querySelector('#playerName').focus();
+				}
 
 				// Timeout so the enter event handler has enough time to check if it was triggered by the submit
 				setTimeout(() => {
@@ -293,9 +414,6 @@ class GalerieApp {
 			}
 		});
 
-		// instructions.addEventListener('click', function () {
-		// 	controls.lock();
-		// });
 		controls.addEventListener('lock', function () {
 			// If the menu and the chatbox is open and the menu is being closed, hide the chatbox as well
 			if (pointerLockRegular && chatbox.classList.contains('visible')) {
@@ -307,8 +425,6 @@ class GalerieApp {
 			// Reset flags
 			pointerLockForChat = false;
 			pointerLockRegular = false;
-
-			//console.log('lock');
 		});
 		const galleryAppInstance = this;
 
@@ -324,7 +440,6 @@ class GalerieApp {
 				);
 				pointerLockRegular = true;
 			}
-			//console.log('unlock');
 		});
 
 		this.scene.add(controls.getObject());
@@ -445,6 +560,12 @@ class GalerieApp {
 		var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 		dirLight.position.set(75, 300, -75);
 		this.scene.add(dirLight);
+
+		//coll teststuff
+		// this.raycasterz1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ), 0, 3 );
+		// this.raycasterz2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 3 );
+		// this.raycasterx1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 1, 0, 0 ), 0, 3 );
+		// this.raycasterx2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( -1, 0, 0 ), 0, 3 );
 	}
 
 	/**
@@ -474,6 +595,8 @@ class GalerieApp {
 		} catch (e) {
 			console.error(e);
 		}
+
+		console.log(this.roomTiles);
 
 		this.roomTiles.forEach(r => {
 			if (r.name === 'plaque') console.debug(r);
@@ -741,6 +864,10 @@ class GalerieApp {
 			galleryWallMaterial,
 			numGalleryWalls
 		);
+		const galleryWallBoundingMesh = new THREE.Mesh(
+			galleryWallGeometry,
+			galleryWallMaterial
+		);
 		galleryWallMesh.layers.enable(1);
 		galleryWallMesh.name = 'galleryWall';
 		this.roomTiles.push(galleryWallMesh);
@@ -753,11 +880,17 @@ class GalerieApp {
 				y * boxWidth
 			);
 			galleryWallMesh.setMatrixAt(galleryWallIndex++, mat);
+
+			// Bounding box for collision
+			const pillarBoundingBox = new THREE.Box3().setFromObject(
+				galleryWallBoundingMesh
+			);
+			pillarBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(pillarBoundingBox);
 		};
 
 		//deco loading + placement funcs
 		let _chairgltf = await this.gltfLoader.loadAsync('img/models/chair.gltf');
-		//_chairgltf.scene.applyQuaternion(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 2 * Math.PI));
 		/**@type{THREE.Mesh} */
 		const _origMesh = _chairgltf.scene.getObjectByName('koltuk');
 		const chairMesh = new THREE.InstancedMesh(
@@ -800,6 +933,11 @@ class GalerieApp {
 			);
 
 			chairMesh.setMatrixAt(chairIndex++, mat);
+
+			// Bounding box for collision
+			const chairBoundingBox = new THREE.Box3().setFromObject(_origMesh);
+			chairBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(chairBoundingBox);
 		};
 		this.roomTiles.push(chairMesh);
 		let chairIndex = 0;
@@ -837,6 +975,11 @@ class GalerieApp {
 
 			plantMesh1.setMatrixAt(plantIndex, mat);
 			plantMesh2.setMatrixAt(plantIndex++, mat);
+
+			// Bounding boxes for collision
+			const plantBoundingBox = new THREE.Box3().setFromObject(_origPltMesh2);
+			plantBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(plantBoundingBox);
 		};
 		this.roomTiles.push(plantMesh1, plantMesh2);
 		let plantIndex = 0;
@@ -848,6 +991,7 @@ class GalerieApp {
 			wallMaterial,
 			numOuterWalls
 		);
+		const wallGeometryBoundingMesh = new THREE.Mesh(wallGeometry, wallMaterial);
 		wallMesh.layers.enable(1);
 		wallMesh.name = 'outerWall';
 		this.roomTiles.push(wallMesh);
@@ -891,6 +1035,13 @@ class GalerieApp {
 			}
 			mat.compose(pos, quaternion, new THREE.Vector3(1, 1, 1));
 			wallMesh.setMatrixAt(outerWallIndex++, mat);
+
+			// Bounding boxes for collision
+			const wallBoundingBox = new THREE.Box3().setFromObject(
+				wallGeometryBoundingMesh
+			);
+			wallBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			wallBoundingBoxes.push(wallBoundingBox);
 		};
 
 		for (let y = 0; y < matrix.length; y++) {
@@ -936,6 +1087,7 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							voting_id: images[imageCount].voting_id,
 						});
 						oneWallGroup.add(canvasMesh);
 						placePlaque(x, y, 'p1');
@@ -969,6 +1121,7 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							voting_id: images[imageCount].voting_id,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(canvasMesh);
@@ -976,7 +1129,6 @@ class GalerieApp {
 					}
 
 					oneWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
-					//this.scene.add(oneWallGroup);
 					this.roomTiles.push(oneWallGroup);
 				} else if (wallTypes.includes(matrix[y][x])) {
 					const oneWallGroup = new THREE.Group();
@@ -1014,6 +1166,7 @@ class GalerieApp {
 							imageId: canvasMesh.uuid,
 							author: images[imageCount].author,
 							title: images[imageCount].title,
+							voting_id: images[imageCount].voting_id,
 						});
 						this.imageElements.push(canvasMesh);
 						oneWallGroup.add(canvasMesh);
@@ -1044,7 +1197,6 @@ class GalerieApp {
 					}
 
 					oneWallGroup.position.set(x * boxWidth, 0, y * boxWidth);
-					//this.scene.add(oneWallGroup);
 					this.roomTiles.push(oneWallGroup);
 				} else if (edgeTypes.includes(matrix[y][x])) {
 					//Any 2 Wall 'Edge'
@@ -1081,15 +1233,11 @@ class GalerieApp {
 						placeOuterWall(x, y, 'r');
 					}
 				}
-				//imageSpacer++;
 			}
 		}
-		// TODO: in the future we might have to change the y axis to fit the model
 		//set Player at the middle of the room!
 		this.camera.position.set((matrix.length / 2) * 5, 3, (matrix.length / 2) * 5);
-		//console.log(this.roomTiles);
 		console.log('Image Count: ' + imageCount, '/', images.length);
-		// correct chair / plant count
 		chairMesh.count = chairIndex;
 		plantMesh1.count = plantIndex;
 		plantMesh2.count = plantIndex;
@@ -1124,8 +1272,6 @@ class GalerieApp {
 		this.serverPlayers.forEach(
 			/**@param {userData} data */ function (data) {
 				if (game.player.id == data.id) {
-					// console.log("we hit a local player");
-					// do ...
 				} else if (game.localPlayers.hasOwnProperty(data.id)) {
 					// Check if coordinates etc. have changed
 					const prevElem = game.localPlayers[data.id];
@@ -1164,7 +1310,6 @@ class GalerieApp {
 		let intersects = this.rayCaster.intersectObjects(this.scene.children, true);
 
 		if (intersects.length > 0) {
-			//console.debug(intersects);
 			let foundElement = this.plaques.find(
 				el => el.imageId === intersects[0].object.uuid
 			);
@@ -1174,6 +1319,7 @@ class GalerieApp {
 				this.pictureLabel.element.children[0].innerText =
 					'"' + foundElement.title + '"';
 				this.pictureLabel.element.children[1].innerText = foundElement.author;
+				this.pictureLabel.element.children[2].innerText = `Vote for this image by typing '/vote ${foundElement.voting_id}' in chat!`;
 				this.pictureLabel.visible = true;
 			}
 		} else {
@@ -1190,23 +1336,64 @@ class GalerieApp {
 				p.anims?.update(delta);
 			});
 
+			cameraBoundingBox.setFromCenterAndSize(
+				this.camera.getWorldPosition(new THREE.Vector3()),
+				playerBoxSize
+			);
+
+			// console.log("Camera Position:", this.camera.position);
+			// console.log("Player Box Size:", playerBoxSize);
+			// console.log("Camera BoundingBox:", cameraBoundingBox);
+
+			let counter = 0;
+
 			if (controls.isLocked === true) {
-				velocity.x -= velocity.x * 10.0 * delta;
-				velocity.z -= velocity.z * 10.0 * delta;
-				//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
-				direction.z = Number(moveForward) - Number(moveBackward);
-				direction.x = Number(moveRight) - Number(moveLeft);
-				direction.normalize(); // this ensures consistent movements in all directions
+				const originalY = this.camera.position.y;
 
-				if (moveForward || moveBackward) velocity.z -= direction.z * 43.0 * delta;
-				if (moveLeft || moveRight) velocity.x -= direction.x * 43.0 * delta;
+				// Check for collisions with each wall bounding box
+				for (const wallBoundingBox of wallBoundingBoxes) {
+					if (cameraBoundingBox.intersectsBox(wallBoundingBox)) {
+						// Handle collision
+						velocity.x = 0.001; // Stop movement in the x direction
+						velocity.z = 0.001; // Stop movement in the z direction
+						moveForward = false;
+						moveBackward = false;
+						moveLeft = false;
+						moveRight = false;
+						counter++;
+						//console.log('collision');
 
-				// if ( onObject === true ) {
-				// 	velocity.y = Math.max( 0, velocity.y );
-				// 	canJump = true;
-				// }
-				controls.moveRight(-velocity.x * delta);
-				controls.moveForward(-velocity.z * delta);
+						// Calculate the direction to move away from the wall
+
+						const awayDirection = this.camera.position
+							.clone()
+							.sub(wallBoundingBox.getCenter(new THREE.Vector3()))
+							.normalize();
+
+						// Move the camera away from the wall
+						this.camera.position.add(awayDirection.multiplyScalar(0.008));
+
+						this.camera.position.y = originalY;
+					}
+				}
+
+				//console.log("check done: " + counter + " boundingboxes checked");
+
+				if (counter === 0) {
+					//console.log("moving");
+					velocity.x -= velocity.x * 10.0 * delta;
+					velocity.z -= velocity.z * 10.0 * delta;
+					//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
+					direction.z = Number(moveForward) - Number(moveBackward);
+					direction.x = Number(moveRight) - Number(moveLeft);
+					direction.normalize(); // this ensures consistent movements in all directions
+
+					if (moveForward || moveBackward) velocity.z -= direction.z * 70.0 * delta;
+					if (moveLeft || moveRight) velocity.x -= direction.x * 70.0 * delta;
+
+					controls.moveRight(-velocity.x * delta);
+					controls.moveForward(-velocity.z * delta);
+				}
 			}
 			this.renderer.render(this.scene, this.camera);
 			this.cssRenderer.render(this.scene, this.camera);

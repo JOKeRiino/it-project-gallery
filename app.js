@@ -37,6 +37,7 @@ app.get('/avatars', (req, res) => {
 });
 
 app.get('/scrapeImages', (req, res) => {
+	console.log("I am scraping");
 	const exists = fs.existsSync('imageData.json');
 	const last_mod = exists
 		? fs.statSync('imageData.json').mtime
@@ -93,13 +94,13 @@ async function scrapeData(url) {
 		const { data } = await axios.get(url + pagination);
 		const $ = cheerio.load(data);
 		pageElements = $('.pcdesktop');
-		//console.log(url + pagination);
 		pageElements.each((idx, el) => {
-			//console.log('Page ' + count + ' of 8. Scraping element ' + idx);
-			let wp_id = +/photo_id=([0-9]+)/.exec($(el).children('.imagebox').children('a').attr('href'))[1]
+			let wp_id = +/photo_id=([0-9]+)/.exec(
+				$(el).children('.imagebox').children('a').attr('href')
+			)[1];
 
 			let img = {
-				id: wp_id
+				id: wp_id,
 			};
 
 			images.push(img);
@@ -119,8 +120,12 @@ async function scrapeData(url) {
 		let i = metaData.lastIndexOf('-');
 		img.author = metaData.substring(i + 1).trim();
 		img.title = metaData.substring(0, i).trim();
-		img.url = targetImage.source_url
-	})
+		img.url = targetImage.source_url;
+	});
+
+	for (var i = 0; i < images.length; i++) {
+		images[i].voting_id = i;
+	}
 
 	fs.writeFile('imageData.json', JSON.stringify(images, null, 2), err => {
 		if (err) {
@@ -172,7 +177,6 @@ io.on(
 				let players = [];
 
 				for (const [_, socket] of io.of('/').sockets) {
-					// console.log(socket);
 					if (socket.changed) {
 						let pl = {
 							id: socket.id,
@@ -215,7 +219,6 @@ io.on(
 			console.log(`socket init ${socket.id}`);
 			socket.userData = {
 				model: data.model,
-				// colour: data.colour,
 				x: data.x,
 				y: data.y,
 				z: data.z,
@@ -230,7 +233,6 @@ io.on(
 		});
 
 		socket.on('update', function (data) {
-			// console.log(`socket update ${socket.id}`);
 			socket.userData.x = data.x;
 			socket.userData.y = data.y;
 			socket.userData.z = data.z;
@@ -248,7 +250,6 @@ io.on(
 
 			for (const [_, socket] of io.of('/').sockets) {
 				if (!socket.userData) continue;
-				// console.log(socket);
 				players.push({
 					id: socket.id,
 					name: socket.userData.name,
@@ -274,6 +275,36 @@ io.on(
 				sender: username,
 				message: data.message,
 			});
+		});
+
+		socket.on('whisper', data => {
+			let username = socket.userData?.name ? socket.userData.name : socket.id;
+			let timestamp = new Date();
+
+			if (data.targetUserId) {
+				io.to(data.targetUserId).emit('whisper', {
+					timestamp: timestamp,
+					message: data.message,
+					sender: username,
+				});
+			} else {
+				console.log('error', `User ${data.targetUserId} not found.`);
+			}
+		});
+
+		socket.on('usernameCheck', (requestedUsername, callback) => {
+			let isAvailable = true;
+
+			for (const client of io.sockets.sockets.values()) {
+				const hasMatchingUsername =
+					client.userData && client.userData.name === requestedUsername;
+
+				if (hasMatchingUsername && client.id !== socket.id) {
+					isAvailable = false;
+					break;
+				}
+			}
+			callback(isAvailable);
 		});
 	}
 );

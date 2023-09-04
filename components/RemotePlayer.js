@@ -17,7 +17,7 @@ export class RemotePlayer extends Player {
 		this.rotation.x = startingPosition.rx;
 		this.rotation.z = startingPosition.rz;
 
-		this.name = startingPosition.name;
+		this.userName = startingPosition.name;
 		this.avatar = startingPosition.model;
 
 		let name = document.createElement('div');
@@ -33,7 +33,7 @@ export class RemotePlayer extends Player {
 			IDLE: null,
 		};
 
-		//Create character model with starting position
+		// Create character model with starting position
 		// If u want to include new animations download them from mixamo with options:
 		// If available tick "In Place"
 		// Format Fbx 7.4
@@ -65,14 +65,11 @@ export class RemotePlayer extends Player {
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
-				//this.model = model;
 				this.game.scene.add(this.model);
-				this.model.layers.enable(3)
-				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
+				this.model.layers.enable(3);
+				this.model.position.set(this.position.x, 0.2, this.position.z);
 				this.model.rotation.order = 'YXZ';
-				//this.model.rotation.x = startingPosition.rx;
 				this.model.rotation.y = startingPosition.ry;
-				//this.model.rotation.z = startingPosition.rz;
 			}
 		);
 
@@ -85,13 +82,11 @@ export class RemotePlayer extends Player {
 		this.position.z = position.z;
 
 		this.rotation.y = position.ry;
-		// this.rotation.x = position.rx;
-		// this.rotation.z = position.rz;
 
 		this.velocity = position.velocity;
 		if (position.name) {
-			this.name = position.name;
-			this.nameTag.element.innerText = this.name;
+			this.userName = position.name;
+			this.nameTag.element.innerText = this.userName;
 		}
 		if (position.model) {
 			this.avatar = position.model;
@@ -123,24 +118,17 @@ export class RemotePlayer extends Player {
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
-				//this.model = model;
 				this.game.scene.add(this.model);
-				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
+				this.model.position.set(this.position.x, 0.2, this.position.z);
 				this.model.rotation.order = 'YXZ';
-				//this.model.rotation.x = position.rx;
-				//this.model.rotation.y = position.ry;
-				//this.model.rotation.z = position.rz;
 			});
 			// TODO: Change Model
 		}
 
 		if (this.model) {
-			// update the position of the block
-			this.model.position.set(position.x, 0.2, position.z); // position.y
-			// update the rotation of the block
-			//this.model.rotation.x = position.rx;
+			this.model.position.set(position.x, 0.2, position.z);
 			this.model.rotation.y = position.ry;
-			//this.model.rotation.z = position.rz;
+			this.model.rotateY(Math.PI);
 
 			if (this.velocity > 0.5) {
 				this.availableAnimations.WALKING?.setEffectiveWeight(2);
@@ -152,8 +140,6 @@ export class RemotePlayer extends Player {
 				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity * 2);
 				this.availableAnimations.IDLE?.setEffectiveWeight(1 / this.velocity);
 			}
-			// console.log(this.velocity);
-
 			this.model.position.needsUpdate = true; // tell three.js to update the position
 		}
 	}
@@ -162,8 +148,7 @@ export class RemotePlayer extends Player {
 		if (this.model) {
 			this.game.scene.remove(this.model);
 			this.nameTag.element.remove();
-			// this.block.texture.dispose(); // dispose its texture
-			this.model = undefined; // set it to undefined
+			this.model = undefined;
 		}
 	}
 }
