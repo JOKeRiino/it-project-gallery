@@ -17,7 +17,7 @@ export class RemotePlayer extends Player {
 		this.rotation.x = startingPosition.rx;
 		this.rotation.z = startingPosition.rz;
 
-		this.userName = startingPosition.name;
+		this.name = startingPosition.name;
 		this.avatar = startingPosition.model;
 
 		let name = document.createElement('div');
@@ -25,7 +25,7 @@ export class RemotePlayer extends Player {
 		name.className = 'player-name';
 
 		this.nameTag = new CSS2DObject(name);
-		this.nameTag.position.set(0, 4, 0);
+		this.nameTag.position.set(0, 3, 0);
 
 		/**@type{Object.<string,THREE.AnimationAction>} */
 		this.availableAnimations = {
@@ -33,63 +33,46 @@ export class RemotePlayer extends Player {
 			IDLE: null,
 		};
 
-		// Create character model with starting position
+		//Create character model with starting position
 		// If u want to include new animations download them from mixamo with options:
 		// If available tick "In Place"
 		// Format Fbx 7.4
 		// Skin: Without Skin
 		this.loader.load(
-			`img/models/avatars/${startingPosition.model}.fbx`,
+			`${startingPosition.model}.fbx`,
 			model => {
 				this.anims = new THREE.AnimationMixer(model);
-				this.loader.load('img/models/animations/Idle.fbx', data => {
-					this.availableAnimations.IDLE = this.anims.clipAction(data.animations[0]);
-					this.availableAnimations.IDLE.setEffectiveWeight(1);
-					this.availableAnimations.IDLE.play();
-				});
-				this.loader.load('img/models/animations/Walking.fbx', data => {
-					this.availableAnimations.WALKING = this.anims.clipAction(
-						data.animations[0]
-					);
-					this.availableAnimations.WALKING.setEffectiveWeight(0);
-					this.availableAnimations.WALKING.play();
-				});
-				model.traverse(o => {
-					if (o.isMesh) {
-						o.castShadow = true;
-						o.receiveShadow = true;
-
-						// Hide hat
-						if (o.name === 'Hat') {
-							o.visible = false;
-						}
-					}
-				});
-
-				// Load texture
-				this.textureLoader.load(
-					`img/models/avatars/textures/${startingPosition.model}.png`,
-					function (texture) {
-						model.traverse(o => {
-							if (o.isMesh) {
-								o.material.map = texture;
-								o.material.needsUpdate = true;
-							}
-						});
-					}
+				this.availableAnimations.IDLE = this.anims.clipAction(
+					model.animations.find(anim => anim.name.toLowerCase().includes('idle'))
 				);
+				this.availableAnimations.IDLE.setEffectiveWeight(1);
+				this.availableAnimations.IDLE.play();
 
-				model.scale.set(0.02, 0.02, 0.02);
-				// mixamo model is rotated inverse to the camera view
-				model.rotateY(Math.PI);
+				this.availableAnimations.WALKING = this.anims.clipAction(
+					model.animations.find(anim => anim.name.toLowerCase().includes('walk'))
+				);
+				this.availableAnimations.WALKING.setEffectiveWeight(0);
+				this.availableAnimations.WALKING.play();
+
+				let bbox = new THREE.Box3();
+				bbox.setFromObject(model);
+				const targetHeight = 3.15;
+				let modelHeight = bbox.max.y - bbox.min.y;
+
+				let scaleFactor = targetHeight / modelHeight;
+
+				model.scale.set(scaleFactor, scaleFactor, scaleFactor);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
+				//this.model = model;
 				this.game.scene.add(this.model);
-				this.model.layers.enable(3);
-				this.model.position.set(this.position.x, 0.2, this.position.z);
+				this.model.layers.enable(3)
+				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
 				this.model.rotation.order = 'YXZ';
+				//this.model.rotation.x = startingPosition.rx;
 				this.model.rotation.y = startingPosition.ry;
+				//this.model.rotation.z = startingPosition.rz;
 			}
 		);
 
@@ -102,67 +85,62 @@ export class RemotePlayer extends Player {
 		this.position.z = position.z;
 
 		this.rotation.y = position.ry;
+		// this.rotation.x = position.rx;
+		// this.rotation.z = position.rz;
 
 		this.velocity = position.velocity;
 		if (position.name) {
-			this.userName = position.name;
-			this.nameTag.element.innerText = this.userName;
+			this.name = position.name;
+			this.nameTag.element.innerText = this.name;
 		}
 		if (position.model) {
 			this.avatar = position.model;
 			delete position.model;
 			this.game.scene.remove(this.model);
-			this.loader.load(`img/models/avatars/${this.avatar}.fbx`, model => {
+			this.loader.load(`${this.avatar}.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
-				let avan = this.availableAnimations;
 				this.availableAnimations = {};
-				console.debug(avan);
-				Object.entries(avan).forEach(([k, v]) => {
-					this.availableAnimations[k] = this.anims.clipAction(v.getClip());
-					this.availableAnimations[k].play();
-				});
-				model.traverse(o => {
-					if (o.isMesh) {
-						o.castShadow = true;
-						o.receiveShadow = true;
-
-						// Hide hat
-						if (o.name === 'Hat') {
-							o.visible = false;
-						}
-					}
-				});
-
-				// Load texture
-				this.textureLoader.load(
-					`img/models/avatars/textures/${this.avatar}.png`,
-					function (texture) {
-						model.traverse(o => {
-							if (o.isMesh) {
-								o.material.map = texture;
-								o.material.needsUpdate = true;
-							}
-						});
-					}
+				this.availableAnimations.IDLE = this.anims.clipAction(
+					model.animations.find(anim => anim.name.toLowerCase().includes('idle'))
 				);
+				//this.availableAnimations.IDLE.setEffectiveWeight(1);
+				this.availableAnimations.IDLE.play();
 
-				model.scale.set(0.02, 0.02, 0.02);
-				// mixamo model is rotated inverse to the camera view
-				//model.rotateY(Math.PI);
+				this.availableAnimations.WALKING = this.anims.clipAction(
+					model.animations.find(anim => anim.name.toLowerCase().includes('walk'))
+				);
+				//this.availableAnimations.WALKING.setEffectiveWeight(0);
+				this.availableAnimations.WALKING.play();
+
+				let bbox = new THREE.Box3();
+				bbox.setFromObject(model);
+				const targetHeight = 3.15;
+				let modelHeight = bbox.max.y - bbox.min.y;
+
+				let scaleFactor = targetHeight / modelHeight;
+
+				model.scale.set(scaleFactor, scaleFactor, scaleFactor);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
+				//this.model = model;
 				this.game.scene.add(this.model);
-				this.model.position.set(this.position.x, 0.2, this.position.z);
+				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
 				this.model.rotation.order = 'YXZ';
+				//this.model.rotation.x = position.rx;
+				//this.model.rotation.y = position.ry;
+				//this.model.rotation.z = position.rz;
 			});
 			// TODO: Change Model
 		}
 
 		if (this.model) {
-			this.model.position.set(position.x, 0.2, position.z);
+			// update the position of the block
+			this.model.position.set(position.x, 0.2, position.z); // position.y
+			// update the rotation of the block
+			//this.model.rotation.x = position.rx;
 			this.model.rotation.y = position.ry;
-			this.model.rotateY(Math.PI);
+			//this.model.rotation.z = position.rz;
 
 			if (this.velocity > 0.5) {
 				this.availableAnimations.WALKING?.setEffectiveWeight(2);
@@ -174,6 +152,8 @@ export class RemotePlayer extends Player {
 				this.availableAnimations.WALKING?.setEffectiveWeight(this.velocity * 2);
 				this.availableAnimations.IDLE?.setEffectiveWeight(1 / this.velocity);
 			}
+			// console.log(this.velocity);
+
 			this.model.position.needsUpdate = true; // tell three.js to update the position
 		}
 	}
@@ -182,7 +162,8 @@ export class RemotePlayer extends Player {
 		if (this.model) {
 			this.game.scene.remove(this.model);
 			this.nameTag.element.remove();
-			this.model = undefined;
+			// this.block.texture.dispose(); // dispose its texture
+			this.model = undefined; // set it to undefined
 		}
 	}
 }
