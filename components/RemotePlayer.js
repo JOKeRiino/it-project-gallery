@@ -162,6 +162,7 @@ export class RemotePlayer extends Player {
 		if (this.model) {
 			this.model.position.set(position.x, 0.2, position.z);
 			this.model.rotation.y = position.ry;
+			this.model.rotateY(Math.PI);
 
 			if (this.velocity > 0.5) {
 				this.availableAnimations.WALKING?.setEffectiveWeight(2);
