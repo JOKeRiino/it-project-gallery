@@ -109,20 +109,14 @@ async function scrapeData(url) {
 
 	// request image info from WP API
 	// advantage to scraping everything: you get the image dimensions and don't need to determine them client-side on every load.
-	let data = await (
-		await fetch(
-			'http://digbb.informatik.fh-nuernberg.de/wp-json/wp/v2/media?include=' +
-				images.map(i => i.id).join(',') +
-				`&per_page=${images.length}`
-		)
-	).json();
-	data.forEach(v => {
-		img = images.find(i => i.id === v.id);
-		// TODO: maybe use downscaled images for performance boosts?
-		let targetImage = v.media_details.sizes.full;
-		img.width = targetImage.width;
-		img.height = targetImage.height;
-		let metaData = v.title.rendered.replace('&#8211;', '-');
+	let data = await (await fetch('http://digbb.informatik.fh-nuernberg.de/wp-json/wp/v2/media?include='+images.map(i=>i.id).join(',')+`&per_page=${images.length}`)).json()
+	data.forEach(v=>{
+		img = images.find(i=>i.id===v.id)
+		// use downscaled images for performance boost. ~1024px is big enough.
+		let targetImage = v.media_details.sizes.large??v.media_details.sizes.full
+		img.width = targetImage.width
+		img.height = targetImage.height
+		let metaData = v.title.rendered.replace('&#8211;','-')
 		let i = metaData.lastIndexOf('-');
 		img.author = metaData.substring(i + 1).trim();
 		img.title = metaData.substring(0, i).trim();
