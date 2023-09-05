@@ -371,8 +371,7 @@ io.on(
 		socket.on('startVoting', () => {
 			voteDict = {};
 			playerVotes = {};
-
-			// TODO send msg to every client that voting has started / or trigger a popup
+			io.emit('startVoting');
 		});
 	}
 );

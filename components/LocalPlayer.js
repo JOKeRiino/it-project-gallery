@@ -3,6 +3,18 @@ import { io, Socket } from 'socket.io-client';
 import { Player } from './Player.js';
 
 const messagesContainer = document.querySelector('#messages');
+const availableCommands = {
+	tp: '/tp [playerName] - Teleport to given player.',
+	whisper:
+		'/whisper [playerName] [message] - Send a private message to a player.',
+	vote: '/vote [pictureID] - Vote for a picture with the given ID.',
+	mostVotes: '/mostVotes - Display the picture with the most votes.',
+	startVote: '/startVote - Start the voting on pictures',
+	stopVote: '/stopVote - Stop the voting process.',
+	votesFrom:
+		'/votesFrom [pictureID] - Display the votes from a specific picture.',
+	help: '/help - Display a list of available commands.',
+};
 
 export class LocalPlayer extends Player {
 	/**@type {Socket} */
@@ -11,6 +23,7 @@ export class LocalPlayer extends Player {
 	 * @param {GalerieApp} game
 	 * @param {{position:THREE.Vector3,rotation:THREE.Vector3}} startingPosition
 	 */
+
 	constructor(game, startingPosition) {
 		super(game);
 
@@ -60,6 +73,10 @@ export class LocalPlayer extends Player {
 
 		socket.on('whisper', data => {
 			this.appendWhisperMessage(data);
+		});
+
+		socket.on('startVoting', () => {
+			this.appendSystemMessage('You can now vote on picture using /vote');
 		});
 	}
 
@@ -160,19 +177,14 @@ export class LocalPlayer extends Player {
 
 		const [command, ...args] = message.substring(1).split(' ');
 
-		//TODO Redo the arg.length checks
 		switch (command) {
 			case 'tp':
-				if (args.length === 0) {
-					this.appendSystemMessage('Usage: /tp [player name]');
-				} else {
-					try {
-						this.teleportTo(args[0]);
-					} catch (error) {
-						console.log(error);
-						this.appendSystemMessage(error.message);
-					}
+				try {
+					this.teleportTo(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
 				}
+
 				break;
 
 			case 'whisper':
@@ -209,27 +221,15 @@ export class LocalPlayer extends Player {
 
 			case 'startVote':
 				try {
-					await this.votesFrom(args);
+					this.startVoting(args);
 				} catch (error) {
 					this.appendSystemMessage(error.message);
 				}
 				break;
 
 			case 'help':
-				const availableCommands = [
-					'/tp [playerName] - Teleport to given player.',
-					'/whisper [playerName] [message] - Send a private message to a player.',
-					'/vote [pictureID] - Vote for a picture with the given ID.',
-					'/startVoting - Start the voting process.',
-					'/stopVoting - Stop the voting process.',
-					'/mostVotes - Display the picture with the most votes.',
-					'/startVote - Start the voting on pictures',
-					'/votesFrom [pictureID] - Display the votes from a specific picture.',
-					'/help - Display a list of available commands.',
-				];
-				this.appendSystemMessage(
-					`Available commands:\n${availableCommands.join('\n')}`
-				);
+				const commandsString = Object.values(availableCommands).join('\n');
+				this.appendSystemMessage(`Available commands:\n${commandsString}`);
 				break;
 
 			default:
@@ -242,6 +242,8 @@ export class LocalPlayer extends Player {
 	}
 
 	teleportTo(target) {
+		if (!this.checkArgs(args, 2, 'tp')) return;
+
 		if (this.game.player.userName === target) {
 			this.appendSystemMessage('You cannot teleport to yourself.');
 			return;
@@ -266,10 +268,7 @@ export class LocalPlayer extends Player {
 	}
 
 	whisper(args) {
-		if (args.length < 2) {
-			this.appendSystemMessage('Usage: /whisper [user] [message]');
-			return;
-		}
+		if (!this.checkArgs(args, 2, 'whisper')) return;
 
 		const [target, ...messageParts] = args;
 		const message = messageParts.join(' ');
@@ -294,12 +293,8 @@ export class LocalPlayer extends Player {
 	}
 
 	vote(args) {
-		if (args.length != 1) {
-			this.appendSystemMessage(
-				'/vote [pictureID] - Vote for a picture with the given ID.'
-			);
-			return;
-		}
+		if (!this.checkArgs(args, 1, 'vote')) return;
+
 		let voting_id = Number(args);
 
 		// TODO Das zeigt nur lokal an! || Evtl. andere farbe für diese art von msgs -> system msgs mit 2tn parameter: warning, info, ...
@@ -309,13 +304,8 @@ export class LocalPlayer extends Player {
 	}
 
 	async mostVotes(args) {
-		//TODO Diesen check auslagern
-		if (args.length != 0) {
-			this.appendSystemMessage(
-				'/mostVotes - Display the picture with the most votes.'
-			);
-			return;
-		}
+		if (!this.checkArgs(args, 0, 'mostVotes')) return;
+
 		let mostVoted = await new Promise((resolve, reject) => {
 			this.socket.emit('mostVotes', result => {
 				resolve(result);
@@ -333,13 +323,7 @@ export class LocalPlayer extends Player {
 
 	//TODO das ist lokal. Sollte eine Nachricht global geben
 	async votesFrom(args) {
-		//TODO Diesen check auslagern
-		if (args.length != 1) {
-			this.appendSystemMessage(
-				'/votesFrom [pictureID] - Display the votes from a specific picture.'
-			);
-			return;
-		}
+		if (!this.checkArgs(args, 1, 'votesFrom')) return;
 
 		let voting_id = Number(args);
 
@@ -354,6 +338,20 @@ export class LocalPlayer extends Player {
 		} else {
 			this.appendSystemMessage(`This shouldn't happen :'(`);
 		}
+	}
+
+	startVoting(args) {
+		if (!this.checkArgs(args, 0, 'startVoting')) return;
+
+		this.socket.emit('startVoting');
+	}
+
+	checkArgs(args, numberParams, cmd) {
+		if (args.length != numberParams) {
+			this.appendSystemMessage(availableCommands[cmd]);
+			return false;
+		}
+		return true;
 	}
 
 	// TODO start & stop
