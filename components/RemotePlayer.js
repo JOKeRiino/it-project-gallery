@@ -38,43 +38,45 @@ export class RemotePlayer extends Player {
 		// If available tick "In Place"
 		// Format Fbx 7.4
 		// Skin: Without Skin
-		this.loader.load(
-			`${startingPosition.model}.fbx`,
-			model => {
-				this.anims = new THREE.AnimationMixer(model);
-				this.availableAnimations.IDLE = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('idle'))
-				);
-				this.availableAnimations.IDLE.setEffectiveWeight(1);
-				this.availableAnimations.IDLE.play();
+		this.loader.load(`${startingPosition.model}.fbx`, model => {
+			this.anims = new THREE.AnimationMixer(model);
 
+			fbxLoader.load(`${startingPosition.model}@idle.fbx`, object => {
+				this.availableAnimations.IDLE = this.anims.clipAction(object.animations[0]);
+			});
+
+			this.availableAnimations.IDLE.setEffectiveWeight(1);
+			this.availableAnimations.IDLE.play();
+
+			fbxLoader.load(`${startingPosition.model}@walking.fbx`, object => {
 				this.availableAnimations.WALKING = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('walk'))
+					object.animations[0]
 				);
-				this.availableAnimations.WALKING.setEffectiveWeight(0);
-				this.availableAnimations.WALKING.play();
+			});
 
-				let bbox = new THREE.Box3();
-				bbox.setFromObject(model);
-				const targetHeight = 3.15;
-				let modelHeight = bbox.max.y - bbox.min.y;
+			this.availableAnimations.WALKING.setEffectiveWeight(0);
+			this.availableAnimations.WALKING.play();
 
-				let scaleFactor = targetHeight / modelHeight;
+			let bbox = new THREE.Box3();
+			bbox.setFromObject(model);
+			const targetHeight = 3.15;
+			let modelHeight = bbox.max.y - bbox.min.y;
 
-				model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-				this.model = new THREE.Group();
-				this.model.add(model);
-				this.model.add(this.nameTag);
-				//this.model = model;
-				this.game.scene.add(this.model);
-				this.model.layers.enable(3)
-				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
-				this.model.rotation.order = 'YXZ';
-				//this.model.rotation.x = startingPosition.rx;
-				this.model.rotation.y = startingPosition.ry;
-				//this.model.rotation.z = startingPosition.rz;
-			}
-		);
+			let scaleFactor = targetHeight / modelHeight;
+
+			model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+			this.model = new THREE.Group();
+			this.model.add(model);
+			this.model.add(this.nameTag);
+			//this.model = model;
+			this.game.scene.add(this.model);
+			this.model.layers.enable(3);
+			this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
+			this.model.rotation.order = 'YXZ';
+			//this.model.rotation.x = startingPosition.rx;
+			this.model.rotation.y = startingPosition.ry;
+			//this.model.rotation.z = startingPosition.rz;
+		});
 
 		console.log('New Remote Player created');
 	}
@@ -100,15 +102,19 @@ export class RemotePlayer extends Player {
 			this.loader.load(`${this.avatar}.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
 				this.availableAnimations = {};
-				this.availableAnimations.IDLE = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('idle'))
-				);
+				fbxLoader.load(`${this.avatar}@idle.fbx`, object => {
+					this.availableAnimations.IDLE = this.anims.clipAction(
+						object.animations[0]
+					);
+				});
 				//this.availableAnimations.IDLE.setEffectiveWeight(1);
 				this.availableAnimations.IDLE.play();
 
-				this.availableAnimations.WALKING = this.anims.clipAction(
-					model.animations.find(anim => anim.name.toLowerCase().includes('walk'))
-				);
+				fbxLoader.load(`${this.avatar}@walking.fbx`, object => {
+					this.availableAnimations.WALKING = this.anims.clipAction(
+						object.animations[0]
+					);
+				});
 				//this.availableAnimations.WALKING.setEffectiveWeight(0);
 				this.availableAnimations.WALKING.play();
 

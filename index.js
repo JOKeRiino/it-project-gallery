@@ -79,7 +79,6 @@ var adjective = [
 	'Deafening',
 	'Faint',
 	'Harsh',
-	'High-pitched',
 	'Hissing',
 	'Hushed',
 	'Husky',
@@ -116,9 +115,9 @@ var object = [
 	'PurplePen',
 	'DollarBill',
 	'StuffedAnimal',
-	'Hair Clip',
+	'HairClip',
 	'Sunglasses',
-	'T-shirt',
+	'Shirt',
 	'Purse',
 	'Towel',
 	'Hat',
@@ -304,11 +303,11 @@ class GalerieApp {
 		if (model) {
 			this.fbxLoader.load(model + '.fbx', mdl => {
 				let anims = new THREE.AnimationMixer(mdl);
-				console.log(mdl.animations.map(a => a.name));
-				let clip = anims.clipAction(
-					mdl.animations.find(ani => ani.name.toLowerCase().includes('idle'))
-				);
-				clip.play();
+				//console.log(mdl.animations.map(a => a.name));
+				this.fbxLoader.load(`${model}@idle.fbx`, object => {
+					let clip = anims.clipAction(object.animations[0]);
+					clip.play();
+				});
 				let bbox = new THREE.Box3();
 				bbox.setFromObject(mdl);
 				const targetHeight = 3.15;
