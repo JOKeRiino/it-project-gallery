@@ -269,8 +269,9 @@ export class LocalPlayer extends Player {
 		return true;
 	}
 
-	teleportTo(target) {
-		if (!this.checkArgs(args, 2, 'tp')) return;
+	teleportTo(args) {
+		if (!this.checkArgs(args, 1, 'tp')) return;
+		let target = args[0];
 
 		if (this.game.player.userName === target) {
 			this.appendSystemMessage('You cannot teleport to yourself.');
@@ -278,7 +279,8 @@ export class LocalPlayer extends Player {
 		}
 
 		const playersArray = Object.values(this.game.localPlayers);
-		const targetPlayer = playersArray.find(player => player.userName === target);
+		// RemotePlayer.userName wurde zu RemotPlayer.name
+		const targetPlayer = playersArray.find(player => player.name === target);
 
 		if (!targetPlayer) {
 			this.appendSystemMessage(`Player ${target} not found.`);
@@ -308,7 +310,7 @@ export class LocalPlayer extends Player {
 
 		const playersArray = Object.entries(this.game.localPlayers);
 		const targetEntry = playersArray.find(
-			([id, player]) => player.userName === target
+			([id, player]) => player.name === target
 		);
 
 		if (!targetEntry) {
