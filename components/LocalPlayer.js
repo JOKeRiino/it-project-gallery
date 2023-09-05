@@ -84,7 +84,7 @@ export class LocalPlayer extends Player {
 				if (mostVotedImages.length === 1) {
 					const item = mostVotedImages[0];
 					this.appendSystemMessage(
-						`The voting has been stopped. Image ${item.title} by ${item.author} won.`
+						`The voting has been stopped. Image "${item.title}" by ${item.author} won.`
 					);
 				} else {
 					const descriptions = mostVotedImages
