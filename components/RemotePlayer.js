@@ -41,14 +41,14 @@ export class RemotePlayer extends Player {
 		this.loader.load(`${startingPosition.model}.fbx`, model => {
 			this.anims = new THREE.AnimationMixer(model);
 
-			fbxLoader.load(`${startingPosition.model}@idle.fbx`, object => {
+			this.loader.load(`${startingPosition.model}@idle.fbx`, object => {
 				this.availableAnimations.IDLE = this.anims.clipAction(object.animations[0]);
 			});
 
 			this.availableAnimations.IDLE.setEffectiveWeight(1);
 			this.availableAnimations.IDLE.play();
 
-			fbxLoader.load(`${startingPosition.model}@walking.fbx`, object => {
+			this.loader.load(`${startingPosition.model}@walking.fbx`, object => {
 				this.availableAnimations.WALKING = this.anims.clipAction(
 					object.animations[0]
 				);
@@ -102,7 +102,7 @@ export class RemotePlayer extends Player {
 			this.loader.load(`${this.avatar}.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
 				this.availableAnimations = {};
-				fbxLoader.load(`${this.avatar}@idle.fbx`, object => {
+				this.fbxLoader.load(`${this.avatar}@idle.fbx`, object => {
 					this.availableAnimations.IDLE = this.anims.clipAction(
 						object.animations[0]
 					);
@@ -110,7 +110,7 @@ export class RemotePlayer extends Player {
 				//this.availableAnimations.IDLE.setEffectiveWeight(1);
 				this.availableAnimations.IDLE.play();
 
-				fbxLoader.load(`${this.avatar}@walking.fbx`, object => {
+				this.fbxLoader.load(`${this.avatar}@walking.fbx`, object => {
 					this.availableAnimations.WALKING = this.anims.clipAction(
 						object.animations[0]
 					);
