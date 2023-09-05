@@ -42,6 +42,7 @@ export class RemotePlayer extends Player {
 			this.anims = new THREE.AnimationMixer(model);
 
 			this.loader.load(`${startingPosition.model}@idle.fbx`, object => {
+				console.log(this.anims);
 				this.availableAnimations.IDLE = this.anims.clipAction(object.animations[0]);
 			});
 
@@ -102,7 +103,7 @@ export class RemotePlayer extends Player {
 			this.loader.load(`${this.avatar}@idle.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
 				this.availableAnimations = {};
-				this.availableAnimations.IDLE = this.anims.clipAction(object.animations[0]);
+				this.availableAnimations.IDLE = this.anims.clipAction(model.animations[0]);
 				console.log(this.avatar);
 				//this.availableAnimations.IDLE.setEffectiveWeight(1);
 				this.availableAnimations.IDLE.play();
