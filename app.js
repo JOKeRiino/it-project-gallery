@@ -355,7 +355,6 @@ io.on(
 				}
 			}
 
-			console.log('mostVotes ' + mostVotedId);
 			// TODO emit mostVotes and Object containing all the info of most voted pic & send system msg
 			callback(mostVotedId);
 		});
@@ -363,6 +362,22 @@ io.on(
 		socket.on('startVoting', () => {
 			voteDict = {};
 			io.emit('startVoting');
+		});
+
+		// TODO Tie
+		socket.on('stopVoting', () => {
+			let max_votes = 0;
+			let mostVotedId = null;
+
+			for (const [picId, voters] of Object.entries(voteDict)) {
+				console.log(picId, voters);
+				if (voters.length > max_votes) {
+					max_votes = voters.length;
+					mostVotedId = picId;
+				}
+			}
+
+			io.emit('stopVoting', mostVotedId);
 		});
 	}
 );

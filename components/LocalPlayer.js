@@ -78,6 +78,16 @@ export class LocalPlayer extends Player {
 		socket.on('startVoting', () => {
 			this.appendSystemMessage('You can now vote on picture using /vote');
 		});
+
+		socket.on('stopVoting', mostVotedId => {
+			if (mostVotedId != null) {
+				this.appendSystemMessage(
+					`The voting has been stopped. Image ${mostVotedId} won.`
+				);
+			} else {
+				this.appendSystemMessage(`No votes have been casted.`);
+			}
+		});
 	}
 
 	requestUsernameCheck(usernameRequested) {
@@ -227,6 +237,14 @@ export class LocalPlayer extends Player {
 				}
 				break;
 
+			case 'stopVote':
+				try {
+					this.stopVoting(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
+
 			case 'help':
 				const commandsString = Object.values(availableCommands).join('\n');
 				this.appendSystemMessage(`Available commands:\n${commandsString}`);
@@ -321,7 +339,7 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	//TODO das ist lokal. Sollte eine Nachricht global geben
+	//TODO das ist lokal. Sollte eine Nachricht global geben || Sollte es?
 	async votesFrom(args) {
 		if (!this.checkArgs(args, 1, 'votesFrom')) return;
 
@@ -346,6 +364,12 @@ export class LocalPlayer extends Player {
 		this.socket.emit('startVoting');
 	}
 
+	stopVoting(args) {
+		if (!this.checkArgs(args, 0, 'stopVoting')) return;
+
+		this.socket.emit('stopVoting');
+	}
+
 	checkArgs(args, numberParams, cmd) {
 		if (args.length != numberParams) {
 			this.appendSystemMessage(availableCommands[cmd]);
@@ -354,6 +378,5 @@ export class LocalPlayer extends Player {
 		return true;
 	}
 
-	// TODO start & stop
 	// TODO Pictures bvw. images umbenennen
 }
