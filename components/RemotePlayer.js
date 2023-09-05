@@ -99,14 +99,11 @@ export class RemotePlayer extends Player {
 			this.avatar = position.model;
 			delete position.model;
 			this.game.scene.remove(this.model);
-			this.loader.load(`${this.avatar}.fbx`, model => {
+			this.loader.load(`${this.avatar}@idle.fbx`, model => {
 				this.anims = new THREE.AnimationMixer(model);
 				this.availableAnimations = {};
-				this.fbxLoader.load(`${this.avatar}@idle.fbx`, object => {
-					this.availableAnimations.IDLE = this.anims.clipAction(
-						object.animations[0]
-					);
-				});
+				this.availableAnimations.IDLE = this.anims.clipAction(object.animations[0]);
+				console.log(this.avatar);
 				//this.availableAnimations.IDLE.setEffectiveWeight(1);
 				this.availableAnimations.IDLE.play();
 
