@@ -37,7 +37,7 @@ app.get('/avatars', (req, res) => {
 });
 
 app.get('/scrapeImages', (req, res) => {
-	console.log("I am scraping");
+	console.log('I am scraping');
 	const exists = fs.existsSync('imageData.json');
 	const last_mod = exists
 		? fs.statSync('imageData.json').mtime
@@ -118,8 +118,8 @@ async function scrapeData(url) {
 	).json();
 	data.forEach(v => {
 		img = images.find(i => i.id === v.id);
-		// TODO: maybe use downscaled images for performance boosts?
-		let targetImage = v.media_details.sizes.full;
+		// use downscaled images for performance boost. ~1024px is big enough.
+		let targetImage = v.media_details.sizes.large ?? v.media_details.sizes.full;
 		img.width = targetImage.width;
 		img.height = targetImage.height;
 		let metaData = v.title.rendered.replace('&#8211;', '-');
