@@ -8,6 +8,10 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const proxy = require('express-http-proxy');
 
+let images_glob = null;
+let voteDict = {};
+let playerVotes = {};
+
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
@@ -142,6 +146,8 @@ async function scrapeData(url) {
 	});
 
 	console.log(images.length);
+
+	images_glob = images;
 
 	return images;
 }
@@ -311,6 +317,62 @@ io.on(
 				}
 			}
 			callback(isAvailable);
+		});
+
+		socket.on('vote', voting_id => {
+			let playerId = socket.id;
+
+			if (!voteDict[voting_id]) {
+				voteDict[voting_id] = [];
+			}
+
+			// Also save the votes each player made
+			if (!playerVotes[playerId]) {
+				playerVotes[playerId] = [];
+			}
+
+			// Check if the player has already voted for this picture
+			if (voteDict[voting_id].includes(playerId)) {
+				console.log(
+					`Player ${playerId} has already voted for picture ${voting_id}`
+				);
+			} else {
+				voteDict[voting_id].push(playerId);
+				playerVotes[playerId].push(playerId);
+
+				console.log(`Player ${playerId} voted for picture ${voting_id}`);
+			}
+		});
+
+		socket.on('getVotesFrom', (voting_id, callback) => {
+			let votes = voteDict[voting_id] ? voteDict[voting_id].length : 0;
+
+			callback(votes);
+		});
+
+		// TODO: Fall wenn es einen Tie gibt
+		socket.on('mostVotes', callback => {
+			let max_votes = 0;
+			let mostVotedId = null;
+
+			for (const [picId, voters] of Object.entries(voteDict)) {
+				console.log(picId, voters);
+				if (voters.length > max_votes) {
+					max_votes = voters.length;
+					mostVotedId = picId;
+				}
+			}
+
+			console.log('mostVotes ' + mostVotedId);
+			// TODO emit mostVotes and Object containing all the info of most voted pic & send system msg
+			callback(mostVotedId);
+		});
+
+		socket.on('startVoting', () => {
+			voteDict = {};
+			playerVotes = {};
+
+			// TODO send msg to every client that voting has started / or trigger a popup
 		});
 	}
 );

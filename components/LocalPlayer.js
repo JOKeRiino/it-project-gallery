@@ -114,12 +114,12 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	sendMessage(message) {
+	async sendMessage(message) {
 		if (this.socket === undefined) {
 			throw new Error('Socket is undefined');
 		}
 
-		let isCommand = this.checkCommands(message);
+		let isCommand = await this.checkCommands(message);
 		if (!isCommand) {
 			this.socket.emit('message', { message: message });
 		}
@@ -153,13 +153,14 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	checkCommands(message) {
+	async checkCommands(message) {
 		if (message.charAt(0) !== '/') {
 			return false;
 		}
 
 		const [command, ...args] = message.substring(1).split(' ');
 
+		//TODO Redo the arg.length checks
 		switch (command) {
 			case 'tp':
 				if (args.length === 0) {
@@ -182,22 +183,53 @@ export class LocalPlayer extends Player {
 				}
 				break;
 
-			case 'help':
-				const availableCommands = [
-					'/tp [player name] - Teleport to given player.',
-					'/whisper [player name] [message] - Send a private message to a player.',
-				];
-				this.appendSystemMessage(
-					`Available commands:\n${availableCommands.join('\n')}`
-				);
-				break;
-
 			case 'vote':
 				try {
 					this.vote(args);
 				} catch (error) {
 					this.appendSystemMessage(error.message);
 				}
+				break;
+
+			case 'mostVotes':
+				try {
+					await this.mostVotes(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
+
+			case 'votesFrom':
+				try {
+					await this.votesFrom(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
+
+			case 'startVote':
+				try {
+					await this.votesFrom(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message);
+				}
+				break;
+
+			case 'help':
+				const availableCommands = [
+					'/tp [playerName] - Teleport to given player.',
+					'/whisper [playerName] [message] - Send a private message to a player.',
+					'/vote [pictureID] - Vote for a picture with the given ID.',
+					'/startVoting - Start the voting process.',
+					'/stopVoting - Stop the voting process.',
+					'/mostVotes - Display the picture with the most votes.',
+					'/startVote - Start the voting on pictures',
+					'/votesFrom [pictureID] - Display the votes from a specific picture.',
+					'/help - Display a list of available commands.',
+				];
+				this.appendSystemMessage(
+					`Available commands:\n${availableCommands.join('\n')}`
+				);
 				break;
 
 			default:
@@ -262,10 +294,68 @@ export class LocalPlayer extends Player {
 	}
 
 	vote(args) {
-		console.log('You voted for' + args);
-		this.appendSystemMessage(
-			`Player '${this.game.player.userName}' voted for an image!`
-		);
-		//this.socket.emit('vote_update', args);
+		if (args.length != 1) {
+			this.appendSystemMessage(
+				'/vote [pictureID] - Vote for a picture with the given ID.'
+			);
+			return;
+		}
+		let voting_id = Number(args);
+
+		// TODO Das zeigt nur lokal an! || Evtl. andere farbe für diese art von msgs -> system msgs mit 2tn parameter: warning, info, ...
+		this.appendSystemMessage(`You voted for image ${voting_id}.`);
+
+		this.socket.emit('vote', voting_id);
 	}
+
+	async mostVotes(args) {
+		//TODO Diesen check auslagern
+		if (args.length != 0) {
+			this.appendSystemMessage(
+				'/mostVotes - Display the picture with the most votes.'
+			);
+			return;
+		}
+		let mostVoted = await new Promise((resolve, reject) => {
+			this.socket.emit('mostVotes', result => {
+				resolve(result);
+			});
+		});
+
+		if (mostVoted != null) {
+			this.appendSystemMessage(
+				`The image with the most votes is image ${mostVoted}.`
+			);
+		} else {
+			this.appendSystemMessage(`No votes have been casted.`);
+		}
+	}
+
+	//TODO das ist lokal. Sollte eine Nachricht global geben
+	async votesFrom(args) {
+		//TODO Diesen check auslagern
+		if (args.length != 1) {
+			this.appendSystemMessage(
+				'/votesFrom [pictureID] - Display the votes from a specific picture.'
+			);
+			return;
+		}
+
+		let voting_id = Number(args);
+
+		let votes = await new Promise((resolve, reject) => {
+			this.socket.emit('getVotesFrom', voting_id, result => {
+				resolve(result);
+			});
+		});
+
+		if (votes != null) {
+			this.appendSystemMessage(`Image ${voting_id} has ${votes} vote(s).`);
+		} else {
+			this.appendSystemMessage(`This shouldn't happen :'(`);
+		}
+	}
+
+	// TODO start & stop
+	// TODO Pictures bvw. images umbenennen
 }
