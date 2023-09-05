@@ -275,7 +275,7 @@ class GalerieApp {
 		this.textureLoader = new THREE.TextureLoader(this.loadingManager);
 		this.textureLoader.crossOrigin = 'Anonymous';
 		this.fbxLoader.setPath('img/models/avatars/');
-		this.fbxLoader.setPath('img/models/avatars/textures/');
+		//this.fbxLoader.setPath('img/models/avatars/textures/');
 
 		//EventListener to react to a change in window size.
 		window.addEventListener('resize', () => {
