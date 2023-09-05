@@ -10,7 +10,6 @@ const proxy = require('express-http-proxy');
 
 let images_glob = null;
 let voteDict = {};
-let playerVotes = {};
 
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
@@ -326,11 +325,6 @@ io.on(
 				voteDict[voting_id] = [];
 			}
 
-			// Also save the votes each player made
-			if (!playerVotes[playerId]) {
-				playerVotes[playerId] = [];
-			}
-
 			// Check if the player has already voted for this picture
 			if (voteDict[voting_id].includes(playerId)) {
 				console.log(
@@ -338,8 +332,6 @@ io.on(
 				);
 			} else {
 				voteDict[voting_id].push(playerId);
-				playerVotes[playerId].push(playerId);
-
 				console.log(`Player ${playerId} voted for picture ${voting_id}`);
 			}
 		});
@@ -370,7 +362,6 @@ io.on(
 
 		socket.on('startVoting', () => {
 			voteDict = {};
-			playerVotes = {};
 			io.emit('startVoting');
 		});
 	}
