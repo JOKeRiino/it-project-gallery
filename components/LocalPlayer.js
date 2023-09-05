@@ -79,13 +79,20 @@ export class LocalPlayer extends Player {
 			this.appendSystemMessage('You can now vote on picture using /vote');
 		});
 
-		socket.on('stopVoting', mostVotedId => {
-			if (mostVotedId != null) {
-				this.appendSystemMessage(
-					`The voting has been stopped. Image ${mostVotedId} won.`
-				);
+		socket.on('stopVoting', mostVotedIds => {
+			if (mostVotedIds && mostVotedIds.length > 0) {
+				if (mostVotedIds.length === 1) {
+					this.appendSystemMessage(
+						`The voting has been stopped. Image ${mostVotedIds[0]} won.`
+					);
+				} else {
+					const joinedIds = mostVotedIds.join(' & ');
+					this.appendSystemMessage(
+						`The voting has been stopped. There was a tie. Images ${joinedIds} won.`
+					);
+				}
 			} else {
-				this.appendSystemMessage(`No votes have been casted.`);
+				this.appendSystemMessage(`No votes have been cast.`);
 			}
 		});
 	}
@@ -324,18 +331,25 @@ export class LocalPlayer extends Player {
 	async mostVotes(args) {
 		if (!this.checkArgs(args, 0, 'mostVotes')) return;
 
-		let mostVoted = await new Promise((resolve, reject) => {
+		let mostVotedIds = await new Promise((resolve, reject) => {
 			this.socket.emit('mostVotes', result => {
 				resolve(result);
 			});
 		});
 
-		if (mostVoted != null) {
-			this.appendSystemMessage(
-				`The image with the most votes is image ${mostVoted}.`
-			);
+		if (mostVotedIds && mostVotedIds.length > 0) {
+			if (mostVotedIds.length === 1) {
+				this.appendSystemMessage(
+					`The image with the most votes is image ${mostVotedIds[0]}.`
+				);
+			} else {
+				const joinedIds = mostVotedIds.join(' & ');
+				this.appendSystemMessage(
+					`There's currently a tie between images ${joinedIds}.`
+				);
+			}
 		} else {
-			this.appendSystemMessage(`No votes have been casted.`);
+			this.appendSystemMessage(`No votes have been cast.`);
 		}
 	}
 

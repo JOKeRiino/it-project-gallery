@@ -342,21 +342,22 @@ io.on(
 			callback(votes);
 		});
 
-		// TODO: Fall wenn es einen Tie gibt
 		socket.on('mostVotes', callback => {
+			const winners = [];
 			let max_votes = 0;
-			let mostVotedId = null;
 
 			for (const [picId, voters] of Object.entries(voteDict)) {
-				console.log(picId, voters);
 				if (voters.length > max_votes) {
 					max_votes = voters.length;
-					mostVotedId = picId;
+					winners.length = 0;
+					winners.push(picId);
+				} else if (voters.length === max_votes) {
+					winners.push(picId);
 				}
 			}
 
 			// TODO emit mostVotes and Object containing all the info of most voted pic & send system msg
-			callback(mostVotedId);
+			callback(winners);
 		});
 
 		socket.on('startVoting', () => {
@@ -364,20 +365,21 @@ io.on(
 			io.emit('startVoting');
 		});
 
-		// TODO Tie
 		socket.on('stopVoting', () => {
+			const winners = [];
 			let max_votes = 0;
-			let mostVotedId = null;
 
 			for (const [picId, voters] of Object.entries(voteDict)) {
-				console.log(picId, voters);
 				if (voters.length > max_votes) {
 					max_votes = voters.length;
-					mostVotedId = picId;
+					winners.length = 0;
+					winners.push(picId);
+				} else if (voters.length === max_votes) {
+					winners.push(picId);
 				}
 			}
 
-			io.emit('stopVoting', mostVotedId);
+			io.emit('stopVoting', winners);
 		});
 	}
 );
