@@ -79,16 +79,19 @@ export class LocalPlayer extends Player {
 			this.appendSystemMessage('You can now vote on picture using /vote');
 		});
 
-		socket.on('stopVoting', mostVotedIds => {
-			if (mostVotedIds && mostVotedIds.length > 0) {
-				if (mostVotedIds.length === 1) {
+		socket.on('stopVoting', mostVotedImages => {
+			if (mostVotedImages && mostVotedImages.length > 0) {
+				if (mostVotedImages.length === 1) {
+					const item = mostVotedImages[0];
 					this.appendSystemMessage(
-						`The voting has been stopped. Image ${mostVotedIds[0]} won.`
+						`The voting has been stopped. Image ${item.title} by ${item.author} won.`
 					);
 				} else {
-					const joinedIds = mostVotedIds.join(' & ');
+					const descriptions = mostVotedImages
+						.map(item => `"${item.title}" by ${item.author}`)
+						.join(' & ');
 					this.appendSystemMessage(
-						`The voting has been stopped. There was a tie. Images ${joinedIds} won.`
+						`The voting has been stopped. There was a tie. Images ${descriptions} won.`
 					);
 				}
 			} else {
@@ -331,21 +334,24 @@ export class LocalPlayer extends Player {
 	async mostVotes(args) {
 		if (!this.checkArgs(args, 0, 'mostVotes')) return;
 
-		let mostVotedIds = await new Promise((resolve, reject) => {
+		let mostVotedImages = await new Promise((resolve, reject) => {
 			this.socket.emit('mostVotes', result => {
 				resolve(result);
 			});
 		});
 
-		if (mostVotedIds && mostVotedIds.length > 0) {
-			if (mostVotedIds.length === 1) {
+		if (mostVotedImages && mostVotedImages.length > 0) {
+			if (mostVotedImages.length === 1) {
+				const item = mostVotedImages[0];
 				this.appendSystemMessage(
-					`The image with the most votes is image ${mostVotedIds[0]}.`
+					`The voting has been stopped. Image ${item.title} by ${item.author} won.`
 				);
 			} else {
-				const joinedIds = mostVotedIds.join(' & ');
+				const descriptions = mostVotedImages
+					.map(item => `"${item.title}" by ${item.author}`)
+					.join(' & ');
 				this.appendSystemMessage(
-					`There's currently a tie between images ${joinedIds}.`
+					`The voting has been stopped. There was a tie. Images ${descriptions} won.`
 				);
 			}
 		} else {
