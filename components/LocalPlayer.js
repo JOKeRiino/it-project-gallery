@@ -380,6 +380,18 @@ export class LocalPlayer extends Player {
 		}
 	}
 
+	async getVotesFrom(args) {
+		let voting_id = Number(args);
+
+		let votes = await new Promise((resolve, reject) => {
+			this.socket.emit('getVotesFrom', voting_id, result => {
+				resolve(result);
+			});
+		});
+
+		return votes;
+	}
+
 	startVoting(args) {
 		if (!this.checkArgs(args, 0, 'startVoting')) return;
 

@@ -251,11 +251,15 @@ class GalerieApp {
 		this.pictureLabelElem = document.createElement('div');
 		let pictureLabelAuthor = document.createElement('h2');
 		let pictureLabelTitle = document.createElement('h3');
+		let pictureLabelVotes = document.createElement('p');
 		let pictureLabelVoting = document.createElement('p');
+
 		this.pictureLabelElem.className = 'pictureLabel';
 		this.pictureLabelElem.appendChild(pictureLabelAuthor);
 		this.pictureLabelElem.appendChild(pictureLabelTitle);
+		this.pictureLabelElem.appendChild(pictureLabelVotes);
 		this.pictureLabelElem.appendChild(pictureLabelVoting);
+
 		this.pictureLabel = new CSS2DObject(this.pictureLabelElem);
 		this.pictureLabel.position.set(0, 0, 0);
 		this.pictureLabel.visible = false;
@@ -1297,7 +1301,7 @@ class GalerieApp {
 		);
 	}
 
-	checkIntersectionOnMouseMove(event) {
+	async checkIntersectionOnMouseMove(event) {
 		this.rayCaster.setFromCamera(this.screenCenter, this.camera);
 
 		let intersects = this.rayCaster.intersectObjects(this.scene.children, true);
@@ -1312,7 +1316,9 @@ class GalerieApp {
 				this.pictureLabel.element.children[0].innerText =
 					'"' + foundElement.title + '"';
 				this.pictureLabel.element.children[1].innerText = foundElement.author;
-				this.pictureLabel.element.children[2].innerText = `Vote for this image by typing '/vote ${foundElement.voting_id}' in chat!`;
+				const votes = await this.player.getVotesFrom(foundElement.voting_id);
+				this.pictureLabel.element.children[2].innerText = `This image currently has ${votes} vote(s)`;
+				this.pictureLabel.element.children[3].innerText = `Vote for this image by typing '/vote ${foundElement.voting_id}' in chat!`;
 				this.pictureLabel.visible = true;
 			}
 		} else {
