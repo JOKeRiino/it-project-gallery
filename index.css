@@ -289,7 +289,17 @@ p {
 	white-space: pre-line;
 }
 
-.system-message {
+.system-warning {
+	color: #cf5c36;
+}
+
+.system-error {
+	color: #cf5c36;
+}
+.system-infor {
+	color: #cf5c36;
+}
+.system-success {
 	color: #cf5c36;
 }
 

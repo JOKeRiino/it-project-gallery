@@ -15,6 +15,13 @@ const availableCommands = {
 		'/votesFrom [pictureID] - Display the votes from a specific picture.',
 	help: '/help - Display a list of available commands.',
 };
+// Almost like an enum
+const SystemMessageStatus = Object.freeze({
+	INFO: 'system-info',
+	WARNING: 'system-warning',
+	ERROR: 'system-error',
+	SUCCESS: 'system-success',
+});
 
 export class LocalPlayer extends Player {
 	/**@type {Socket} */
@@ -172,10 +179,11 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	appendSystemMessage(message) {
+	appendSystemMessage(message, status) {
 		let messageElement = document.createElement('p');
 		messageElement.textContent = `[${new Date().toLocaleTimeString()}] System: ${message}`;
-		messageElement.classList.add('system-message');
+
+		messageElement.classList.add(SystemMessageStatus.WARNING);
 		messagesContainer.append(messageElement);
 	}
 
