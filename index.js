@@ -192,6 +192,11 @@ class GalerieApp {
 			let loadingScreen = document.getElementById('loading-screen');
 			loadingScreen.style.display = 'none';
 		});
+
+		this.player.appendSystemMessage(
+			'Type /help to see a list of available commands',
+			'system-info'
+		);
 	}
 
 	//Create and maintain Renderer, Camera, and Scene
