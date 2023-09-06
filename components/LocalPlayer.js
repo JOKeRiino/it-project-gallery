@@ -16,7 +16,7 @@ const availableCommands = {
 	help: '/help - Display a list of available commands.',
 };
 // Almost like an enum
-const SystemMessageStatus = Object.freeze({
+const SYSTEM_MESSAGE_STATUS = Object.freeze({
 	INFO: 'system-info',
 	WARNING: 'system-warning',
 	ERROR: 'system-error',
@@ -83,7 +83,10 @@ export class LocalPlayer extends Player {
 		});
 
 		socket.on('startVoting', () => {
-			this.appendSystemMessage('You can now vote on picture using /vote');
+			this.appendSystemMessage(
+				'You can now vote on images using /vote',
+				SYSTEM_MESSAGE_STATUS.INFO
+			);
 		});
 
 		socket.on('stopVoting', mostVotedImages => {
@@ -91,18 +94,23 @@ export class LocalPlayer extends Player {
 				if (mostVotedImages.length === 1) {
 					const item = mostVotedImages[0];
 					this.appendSystemMessage(
-						`The voting has been stopped. Image "${item.title}" by ${item.author} won.`
+						`The voting has been stopped. Image "${item.title}" by ${item.author} won`,
+						SYSTEM_MESSAGE_STATUS.SUCCESS
 					);
 				} else {
 					const descriptions = mostVotedImages
 						.map(item => `"${item.title}" by ${item.author}`)
 						.join(' & ');
 					this.appendSystemMessage(
-						`The voting has been stopped. There was a tie. Images ${descriptions} won.`
+						`The voting has been stopped. There was a tie. Images ${descriptions} won.`,
+						SYSTEM_MESSAGE_STATUS.SUCCESS
 					);
 				}
 			} else {
-				this.appendSystemMessage(`No votes have been cast.`);
+				this.appendSystemMessage(
+					`No votes have been cast.`,
+					SYSTEM_MESSAGE_STATUS.INFO
+				);
 			}
 		});
 	}
@@ -183,7 +191,7 @@ export class LocalPlayer extends Player {
 		let messageElement = document.createElement('p');
 		messageElement.textContent = `[${new Date().toLocaleTimeString()}] System: ${message}`;
 
-		messageElement.classList.add(SystemMessageStatus.WARNING);
+		messageElement.classList.add(status);
 		messagesContainer.append(messageElement);
 	}
 
@@ -210,7 +218,7 @@ export class LocalPlayer extends Player {
 				try {
 					this.teleportTo(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 
 				break;
@@ -219,7 +227,7 @@ export class LocalPlayer extends Player {
 				try {
 					this.whisper(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 				break;
 
@@ -227,7 +235,7 @@ export class LocalPlayer extends Player {
 				try {
 					this.vote(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 				break;
 
@@ -235,7 +243,7 @@ export class LocalPlayer extends Player {
 				try {
 					await this.mostVotes(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 				break;
 
@@ -243,7 +251,7 @@ export class LocalPlayer extends Player {
 				try {
 					await this.votesFrom(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 				break;
 
@@ -251,7 +259,7 @@ export class LocalPlayer extends Player {
 				try {
 					this.startVoting(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 				break;
 
@@ -259,18 +267,22 @@ export class LocalPlayer extends Player {
 				try {
 					this.stopVoting(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
 				break;
 
 			case 'help':
 				const commandsString = Object.values(availableCommands).join('\n');
-				this.appendSystemMessage(`Available commands:\n${commandsString}`);
+				this.appendSystemMessage(
+					`Available commands:\n${commandsString}`,
+					SYSTEM_MESSAGE_STATUS.INFO
+				);
 				break;
 
 			default:
 				this.appendSystemMessage(
-					`Invalid command: ${command}. Type /help to see list of available commands`
+					`Invalid command: ${command}. Type /help to see list of available commands`,
+					SYSTEM_MESSAGE_STATUS.WARNING
 				);
 		}
 
@@ -282,7 +294,10 @@ export class LocalPlayer extends Player {
 		let target = args[0];
 
 		if (this.game.player.userName === target) {
-			this.appendSystemMessage('You cannot teleport to yourself.');
+			this.appendSystemMessage(
+				'You cannot teleport to yourself.',
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
@@ -291,7 +306,10 @@ export class LocalPlayer extends Player {
 		const targetPlayer = playersArray.find(player => player.name === target);
 
 		if (!targetPlayer) {
-			this.appendSystemMessage(`Player ${target} not found.`);
+			this.appendSystemMessage(
+				`Player ${target} not found.`,
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
@@ -312,7 +330,10 @@ export class LocalPlayer extends Player {
 		const message = messageParts.join(' ');
 
 		if (this.game.player.userName === target) {
-			this.appendSystemMessage('You cannot whisper to yourself.');
+			this.appendSystemMessage(
+				'You cannot whisper to yourself.',
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
@@ -322,7 +343,10 @@ export class LocalPlayer extends Player {
 		);
 
 		if (!targetEntry) {
-			this.appendSystemMessage(`Player ${target} not found.`);
+			this.appendSystemMessage(
+				`Player ${target} not found.`,
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
@@ -335,8 +359,10 @@ export class LocalPlayer extends Player {
 
 		let voting_id = Number(args);
 
-		// TODO Das zeigt nur lokal an! || Evtl. andere farbe für diese art von msgs -> system msgs mit 2tn parameter: warning, info, ...
-		this.appendSystemMessage(`You voted for image ${voting_id}.`);
+		this.appendSystemMessage(
+			`You voted for image ${voting_id}.`,
+			SYSTEM_MESSAGE_STATUS.SUCCESS
+		);
 
 		this.socket.emit('vote', voting_id);
 	}
@@ -354,18 +380,23 @@ export class LocalPlayer extends Player {
 			if (mostVotedImages.length === 1) {
 				const item = mostVotedImages[0];
 				this.appendSystemMessage(
-					`The voting has been stopped. Image ${item.title} by ${item.author} won.`
+					`The voting has been stopped. Image ${item.title} by ${item.author} won.`,
+					SYSTEM_MESSAGE_STATUS.SUCCESS
 				);
 			} else {
 				const descriptions = mostVotedImages
 					.map(item => `"${item.title}" by ${item.author}`)
 					.join(' & ');
 				this.appendSystemMessage(
-					`The voting has been stopped. There was a tie. Images ${descriptions} won.`
+					`The voting has been stopped. There was a tie. Images ${descriptions} won.`,
+					SYSTEM_MESSAGE_STATUS.SUCCESS
 				);
 			}
 		} else {
-			this.appendSystemMessage(`No votes have been cast.`);
+			this.appendSystemMessage(
+				`No votes have been cast.`,
+				SYSTEM_MESSAGE_STATUS.INFO
+			);
 		}
 	}
 
@@ -382,9 +413,15 @@ export class LocalPlayer extends Player {
 		});
 
 		if (votes != null) {
-			this.appendSystemMessage(`Image ${voting_id} has ${votes} vote(s).`);
+			this.appendSystemMessage(
+				`Image ${voting_id} has ${votes} vote(s).`,
+				SYSTEM_MESSAGE_STATUS.INFO
+			);
 		} else {
-			this.appendSystemMessage(`This shouldn't happen :'(`);
+			this.appendSystemMessage(
+				`This shouldn't happen :'(`,
+				SYSTEM_MESSAGE_STATUS.ERROR
+			);
 		}
 	}
 
@@ -414,7 +451,7 @@ export class LocalPlayer extends Player {
 
 	checkArgs(args, numberParams, cmd) {
 		if (args.length != numberParams) {
-			this.appendSystemMessage(availableCommands[cmd]);
+			this.appendSystemMessage(availableCommands[cmd], SYSTEM_MESSAGE_STATUS.INFO);
 			return false;
 		}
 		return true;

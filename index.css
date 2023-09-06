@@ -294,13 +294,15 @@ p {
 }
 
 .system-error {
-	color: #cf5c36;
+	color: #ff0000;
 }
-.system-infor {
-	color: #cf5c36;
+
+.system-info {
+	color: #002359;
 }
+
 .system-success {
-	color: #cf5c36;
+	color: #1e921a;
 }
 
 .whisper-message {
