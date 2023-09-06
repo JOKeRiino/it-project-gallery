@@ -368,6 +368,8 @@ class GalerieApp {
 			adjective[Math.floor(Math.random() * adjective.length)] +
 			object[Math.floor(Math.random() * object.length)];
 
+		let PLAYER_CONNECTED = false;
+
 		instructions.querySelector('form').addEventListener('submit', async e => {
 			if (instructions.querySelector('form').checkValidity()) {
 				// To not trigger the chatbox
@@ -381,15 +383,18 @@ class GalerieApp {
 				if (nameAvailable) {
 					this.player.userName = usernameRequested;
 					this.player.model = instructions.querySelector('#playerModel').value;
-					this.player.initSocket();
+					if (!PLAYER_CONNECTED) {
+						this.player.initSocket();
+						PLAYER_CONNECTED = true;
+					}
 					if (!this.updater)
 						this.updater = setInterval(() => {
 							this.player.updatePosition(this.camera, velocity.length() / 4.3);
 						}, 40);
 					controls.lock();
-					this.avatarRenderer.setAnimationLoop(null);
-					this.avatarRenderer.dispose();
-					this.avatarRenderer = undefined;
+					//this.avatarRenderer.setAnimationLoop(null);
+					//this.avatarRenderer.dispose();
+					//this.avatarRenderer = undefined;
 
 					playerNameError.style.display = 'none';
 					playerNameInput.style.borderColor = '';
