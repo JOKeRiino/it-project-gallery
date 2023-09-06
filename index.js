@@ -391,9 +391,9 @@ class GalerieApp {
 							this.player.updatePosition(this.camera, velocity.length() / 4.3);
 						}, 40);
 					controls.lock();
-					//this.avatarRenderer.setAnimationLoop(null);
-					//this.avatarRenderer.dispose();
-					//this.avatarRenderer = undefined;
+					this.avatarRenderer.setAnimationLoop(null);
+					this.avatarRenderer.dispose();
+					this.avatarRenderer = undefined;
 
 					playerNameError.style.display = 'none';
 					playerNameInput.style.borderColor = '';
