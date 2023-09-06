@@ -9,7 +9,7 @@ const availableCommands = {
 		'/whisper [playerName] [message] - Send a private message to a player.',
 	vote: '/vote [pictureID] - Vote for a picture with the given ID.',
 	mostVotes: '/mostVotes - Display the picture with the most votes.',
-	startVote: '/startVote - Start the voting on pictures',
+	startVote: '/startVote - Start the voting on pictures.',
 	stopVote: '/stopVote - Stop the voting process.',
 	votesFrom:
 		'/votesFrom [pictureID] - Display the votes from a specific picture.',
@@ -289,7 +289,7 @@ export class LocalPlayer extends Player {
 
 			default:
 				this.appendSystemMessage(
-					`Invalid command: ${command}. Type /help to see list of available commands`,
+					`Invalid command: ${command}. Type /help to see a list of available commands`,
 					SYSTEM_MESSAGE_STATUS.WARNING
 				);
 		}
@@ -388,7 +388,7 @@ export class LocalPlayer extends Player {
 			if (mostVotedImages.length === 1) {
 				const item = mostVotedImages[0];
 				this.appendSystemMessage(
-					`The voting has been stopped. Image ${item.title} by ${item.author} won.`,
+					`Image ${item.title} by ${item.author} currently has the most votes.`,
 					SYSTEM_MESSAGE_STATUS.SUCCESS
 				);
 			} else {
@@ -396,7 +396,7 @@ export class LocalPlayer extends Player {
 					.map(item => `"${item.title}" by ${item.author}`)
 					.join(' & ');
 				this.appendSystemMessage(
-					`The voting has been stopped. There was a tie. Images ${descriptions} won.`,
+					`There is a tie currently between Images ${descriptions}.`,
 					SYSTEM_MESSAGE_STATUS.SUCCESS
 				);
 			}
