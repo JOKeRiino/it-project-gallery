@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { Player } from './Player.js';
 
 export class RemotePlayer extends Player {
@@ -39,37 +40,28 @@ export class RemotePlayer extends Player {
 		// Format Fbx 7.4
 		// Skin: Without Skin
 		this.loader.load(`${startingPosition.model}.fbx`, model => {
+			model.scale.setScalar(0.018799710619674975);
+			model.rotateY(Math.PI);
+			//model animations:
 			this.anims = new THREE.AnimationMixer(model);
+			const anim = new FBXLoader();
+			anim.setPath('./img/models/avatars/animations/');
+			anim.load(startingPosition.model + '@Idle.fbx', anim => {
+				model.animations[1] = anim.animations[0]; //load idle anim from second model and set it as sencond animation on first model
 
-			this.loader.load(`${startingPosition.model}@idle.fbx`, object => {
-				console.log(this.anims);
-				this.availableAnimations.IDLE = this.anims.clipAction(object.animations[0]);
-			});
-
-			this.availableAnimations.IDLE.setEffectiveWeight(1);
-			this.availableAnimations.IDLE.play();
-
-			this.loader.load(`${startingPosition.model}@walking.fbx`, object => {
 				this.availableAnimations.WALKING = this.anims.clipAction(
-					object.animations[0]
+					model.animations[0]
 				);
+				this.availableAnimations.IDLE = this.anims.clipAction(model.animations[1]);
+				this.availableAnimations.IDLE.setEffectiveWeight(1);
+				this.availableAnimations.IDLE.play();
+				this.availableAnimations.WALKING.setEffectiveWeight(0);
+				this.availableAnimations.WALKING.play();
 			});
 
-			this.availableAnimations.WALKING.setEffectiveWeight(0);
-			this.availableAnimations.WALKING.play();
-
-			let bbox = new THREE.Box3();
-			bbox.setFromObject(model);
-			const targetHeight = 3.15;
-			let modelHeight = bbox.max.y - bbox.min.y;
-
-			let scaleFactor = targetHeight / modelHeight;
-
-			model.scale.set(scaleFactor, scaleFactor, scaleFactor);
 			this.model = new THREE.Group();
 			this.model.add(model);
 			this.model.add(this.nameTag);
-			//this.model = model;
 			this.game.scene.add(this.model);
 			this.model.layers.enable(3);
 			this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
@@ -88,8 +80,6 @@ export class RemotePlayer extends Player {
 		this.position.z = position.z;
 
 		this.rotation.y = position.ry;
-		// this.rotation.x = position.rx;
-		// this.rotation.z = position.rz;
 
 		this.velocity = position.velocity;
 		if (position.name) {
@@ -100,30 +90,28 @@ export class RemotePlayer extends Player {
 			this.avatar = position.model;
 			delete position.model;
 			this.game.scene.remove(this.model);
-			this.loader.load(`${this.avatar}@idle.fbx`, model => {
+
+			this.loader.load(`${this.avatar.model}.fbx`, model => {
+				model.scale.setScalar(0.018799710619674975);
+				//model animations:
 				this.anims = new THREE.AnimationMixer(model);
 				this.availableAnimations = {};
-				this.availableAnimations.IDLE = this.anims.clipAction(model.animations[0]);
-				console.log(this.avatar);
-				//this.availableAnimations.IDLE.setEffectiveWeight(1);
-				this.availableAnimations.IDLE.play();
 
-				this.fbxLoader.load(`${this.avatar}@walking.fbx`, object => {
+				const anim = new FBXLoader();
+				anim.setPath('./img/models/avatars/animations/');
+				anim.load(startingPosition.model + '@Idle.fbx', anim => {
+					model.animations[1] = anim.animations[0];
+
 					this.availableAnimations.WALKING = this.anims.clipAction(
-						object.animations[0]
+						model.animations[0]
 					);
+					this.availableAnimations.IDLE = this.anims.clipAction(model.animations[1]);
+					this.availableAnimations.IDLE.setEffectiveWeight(1);
+					this.availableAnimations.IDLE.play();
+					this.availableAnimations.WALKING.setEffectiveWeight(0);
+					this.availableAnimations.WALKING.play();
 				});
-				//this.availableAnimations.WALKING.setEffectiveWeight(0);
-				this.availableAnimations.WALKING.play();
 
-				let bbox = new THREE.Box3();
-				bbox.setFromObject(model);
-				const targetHeight = 3.15;
-				let modelHeight = bbox.max.y - bbox.min.y;
-
-				let scaleFactor = targetHeight / modelHeight;
-
-				model.scale.set(scaleFactor, scaleFactor, scaleFactor);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
@@ -131,9 +119,6 @@ export class RemotePlayer extends Player {
 				this.game.scene.add(this.model);
 				this.model.position.set(this.position.x, 0.2, this.position.z); //this.position.y
 				this.model.rotation.order = 'YXZ';
-				//this.model.rotation.x = position.rx;
-				//this.model.rotation.y = position.ry;
-				//this.model.rotation.z = position.rz;
 			});
 			// TODO: Change Model
 		}
