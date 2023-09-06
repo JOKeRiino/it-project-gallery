@@ -193,6 +193,7 @@ export class LocalPlayer extends Player {
 
 		messageElement.classList.add(status);
 		messagesContainer.append(messageElement);
+		this.scrollToEnd();
 	}
 
 	appendWhisperMessage(data) {
@@ -203,7 +204,14 @@ export class LocalPlayer extends Player {
 			).toLocaleTimeString()}] (Whisper from ${data.sender}): ${data.message}`;
 			messageElement.classList.add('whisper-message');
 			messagesContainer.append(messageElement);
+			this.scrollToEnd();
 		}
+	}
+
+	scrollToEnd() {
+		window.requestAnimationFrame(() => {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		});
 	}
 
 	async checkCommands(message) {
