@@ -301,27 +301,29 @@ class GalerieApp {
 		let avatar;
 
 		if (model) {
-			this.fbxLoader.load(model + '.fbx', mdl => {
-				let anims = new THREE.AnimationMixer(mdl);
-				//console.log(mdl.animations.map(a => a.name));
-				this.fbxLoader.load(`${model}@idle.fbx`, object => {
-					let clip = anims.clipAction(object.animations[0]);
-					clip.play();
+			this.charLoader = new FBXLoader();
+			this.charLoader.setPath('./img/models/avatars/');
+			this.charLoader.load(model + '.fbx', fbx => {
+				fbx.scale.setScalar(0.018799710619674975);
+				this._mixer = new THREE.AnimationMixer(fbx);
+				//load the second animation (model)
+				const anim = new FBXLoader();
+				anim.setPath('./img/models/avatars/animations/');
+				anim.load('woman@Idle.fbx', anim => {
+					fbx.animations[1] = anim.animations[0];
+
+					const WALKING = this._mixer.clipAction(fbx.animations[0]);
+					const IDLE = this._mixer.clipAction(fbx.animations[1]);
+					console.log(fbx);
+					WALKING.play();
+					//IDLE.play();
 				});
+
 				let bbox = new THREE.Box3();
-				bbox.setFromObject(mdl);
-				const targetHeight = 3.15;
-				let height = bbox.max.y - bbox.min.y;
-				let scaleFactor = targetHeight / height;
-				mdl.scale.set(scaleFactor, scaleFactor, scaleFactor);
-				bbox.setFromObject(mdl);
+				bbox.setFromObject(fbx);
 				let width =
 					document.getElementById('avatarPreview').parentElement.clientWidth / 50;
-				height = bbox.max.y - bbox.min.y;
-				// const pad_height = height / 10;
-				// width += width / 10;
-				// height += pad_height;
-				//mdl.position.y = pad_height / 2;
+				let height = bbox.max.y - bbox.min.y;
 
 				let camera = new THREE.OrthographicCamera(
 					-width / 2,
@@ -342,16 +344,17 @@ class GalerieApp {
 					this.avatarRenderer.setSize(width * 50, height * 50, true);
 					this.avatarRenderer.setPixelRatio(window.devicePixelRatio);
 				}
+				avatar = fbx;
 				let last = performance.now();
 				this.avatarRenderer.setAnimationLoop(time => {
 					const delta = (time - last) / 1000;
 					if (avatar) avatar.rotation.y += delta;
-					anims.update(delta);
+					this._mixer.update(delta);
 					this.avatarRenderer.render(scene, camera);
 					last = time;
 				});
-				scene.add(mdl);
-				avatar = mdl;
+
+				scene.add(fbx);
 			});
 		}
 	}
