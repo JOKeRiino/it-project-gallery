@@ -3,6 +3,25 @@ import { io, Socket } from 'socket.io-client';
 import { Player } from './Player.js';
 
 const messagesContainer = document.querySelector('#messages');
+const availableCommands = {
+	tp: '/tp [playerName] - Teleport to given player.',
+	whisper:
+		'/whisper [playerName] [message] - Send a private message to a player.',
+	vote: '/vote [pictureID] - Vote for a picture with the given ID.',
+	mostVotes: '/mostVotes - Display the picture with the most votes.',
+	startVote: '/startVote - Start the voting on pictures',
+	stopVote: '/stopVote - Stop the voting process.',
+	votesFrom:
+		'/votesFrom [pictureID] - Display the votes from a specific picture.',
+	help: '/help - Display a list of available commands.',
+};
+// Almost like an enum
+const SYSTEM_MESSAGE_STATUS = Object.freeze({
+	INFO: 'system-info',
+	WARNING: 'system-warning',
+	ERROR: 'system-error',
+	SUCCESS: 'system-success',
+});
 
 export class LocalPlayer extends Player {
 	/**@type {Socket} */
@@ -11,6 +30,7 @@ export class LocalPlayer extends Player {
 	 * @param {GalerieApp} game
 	 * @param {{position:THREE.Vector3,rotation:THREE.Vector3}} startingPosition
 	 */
+
 	constructor(game, startingPosition) {
 		super(game);
 
@@ -60,6 +80,38 @@ export class LocalPlayer extends Player {
 
 		socket.on('whisper', data => {
 			this.appendWhisperMessage(data);
+		});
+
+		socket.on('startVoting', () => {
+			this.appendSystemMessage(
+				'You can now vote on images using /vote',
+				SYSTEM_MESSAGE_STATUS.INFO
+			);
+		});
+
+		socket.on('stopVoting', mostVotedImages => {
+			if (mostVotedImages && mostVotedImages.length > 0) {
+				if (mostVotedImages.length === 1) {
+					const item = mostVotedImages[0];
+					this.appendSystemMessage(
+						`The voting has been stopped. Image "${item.title}" by ${item.author} won`,
+						SYSTEM_MESSAGE_STATUS.SUCCESS
+					);
+				} else {
+					const descriptions = mostVotedImages
+						.map(item => `"${item.title}" by ${item.author}`)
+						.join(' & ');
+					this.appendSystemMessage(
+						`The voting has been stopped. There was a tie. Images ${descriptions} won.`,
+						SYSTEM_MESSAGE_STATUS.SUCCESS
+					);
+				}
+			} else {
+				this.appendSystemMessage(
+					`No votes have been cast.`,
+					SYSTEM_MESSAGE_STATUS.INFO
+				);
+			}
 		});
 	}
 
@@ -114,12 +166,12 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	sendMessage(message) {
+	async sendMessage(message) {
 		if (this.socket === undefined) {
 			throw new Error('Socket is undefined');
 		}
 
-		let isCommand = this.checkCommands(message);
+		let isCommand = await this.checkCommands(message);
 		if (!isCommand) {
 			this.socket.emit('message', { message: message });
 		}
@@ -135,11 +187,13 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	appendSystemMessage(message) {
+	appendSystemMessage(message, status) {
 		let messageElement = document.createElement('p');
 		messageElement.textContent = `[${new Date().toLocaleTimeString()}] System: ${message}`;
-		messageElement.classList.add('system-message');
+
+		messageElement.classList.add(status);
 		messagesContainer.append(messageElement);
+		this.scrollToEnd();
 	}
 
 	appendWhisperMessage(data) {
@@ -150,10 +204,17 @@ export class LocalPlayer extends Player {
 			).toLocaleTimeString()}] (Whisper from ${data.sender}): ${data.message}`;
 			messageElement.classList.add('whisper-message');
 			messagesContainer.append(messageElement);
+			this.scrollToEnd();
 		}
 	}
 
-	checkCommands(message) {
+	scrollToEnd() {
+		window.requestAnimationFrame(() => {
+			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		});
+	}
+
+	async checkCommands(message) {
 		if (message.charAt(0) !== '/') {
 			return false;
 		}
@@ -162,64 +223,101 @@ export class LocalPlayer extends Player {
 
 		switch (command) {
 			case 'tp':
-				if (args.length === 0) {
-					this.appendSystemMessage('Usage: /tp [player name]');
-				} else {
-					try {
-						this.teleportTo(args[0]);
-					} catch (error) {
-						console.log(error);
-						this.appendSystemMessage(error.message);
-					}
+				try {
+					this.teleportTo(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
+
 				break;
 
 			case 'whisper':
 				try {
 					this.whisper(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
-				break;
-
-			case 'help':
-				const availableCommands = [
-					'/tp [player name] - Teleport to given player.',
-					'/whisper [player name] [message] - Send a private message to a player.',
-				];
-				this.appendSystemMessage(
-					`Available commands:\n${availableCommands.join('\n')}`
-				);
 				break;
 
 			case 'vote':
 				try {
 					this.vote(args);
 				} catch (error) {
-					this.appendSystemMessage(error.message);
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
 				}
+				break;
+
+			case 'mostVotes':
+				try {
+					await this.mostVotes(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
+				}
+				break;
+
+			case 'votesFrom':
+				try {
+					await this.votesFrom(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
+				}
+				break;
+
+			case 'startVote':
+				try {
+					this.startVoting(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
+				}
+				break;
+
+			case 'stopVote':
+				try {
+					this.stopVoting(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
+				}
+				break;
+
+			case 'help':
+				const commandsString = Object.values(availableCommands).join('\n');
+				this.appendSystemMessage(
+					`Available commands:\n${commandsString}`,
+					SYSTEM_MESSAGE_STATUS.INFO
+				);
 				break;
 
 			default:
 				this.appendSystemMessage(
-					`Invalid command: ${command}. Type /help to see list of available commands`
+					`Invalid command: ${command}. Type /help to see list of available commands`,
+					SYSTEM_MESSAGE_STATUS.WARNING
 				);
 		}
 
 		return true;
 	}
 
-	teleportTo(target) {
+	teleportTo(args) {
+		if (!this.checkArgs(args, 1, 'tp')) return;
+		let target = args[0];
+
 		if (this.game.player.userName === target) {
-			this.appendSystemMessage('You cannot teleport to yourself.');
+			this.appendSystemMessage(
+				'You cannot teleport to yourself.',
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
 		const playersArray = Object.values(this.game.localPlayers);
-		const targetPlayer = playersArray.find(player => player.userName === target);
+		// RemotePlayer.userName wurde zu RemotPlayer.name
+		const targetPlayer = playersArray.find(player => player.name === target);
 
 		if (!targetPlayer) {
-			this.appendSystemMessage(`Player ${target} not found.`);
+			this.appendSystemMessage(
+				`Player ${target} not found.`,
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
@@ -234,26 +332,29 @@ export class LocalPlayer extends Player {
 	}
 
 	whisper(args) {
-		if (args.length < 2) {
-			this.appendSystemMessage('Usage: /whisper [user] [message]');
-			return;
-		}
+		if (!this.checkArgs(args, 2, 'whisper')) return;
 
 		const [target, ...messageParts] = args;
 		const message = messageParts.join(' ');
 
 		if (this.game.player.userName === target) {
-			this.appendSystemMessage('You cannot whisper to yourself.');
+			this.appendSystemMessage(
+				'You cannot whisper to yourself.',
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
 		const playersArray = Object.entries(this.game.localPlayers);
 		const targetEntry = playersArray.find(
-			([id, player]) => player.userName === target
+			([id, player]) => player.name === target
 		);
 
 		if (!targetEntry) {
-			this.appendSystemMessage(`Player ${target} not found.`);
+			this.appendSystemMessage(
+				`Player ${target} not found.`,
+				SYSTEM_MESSAGE_STATUS.WARNING
+			);
 			return;
 		}
 
@@ -262,10 +363,107 @@ export class LocalPlayer extends Player {
 	}
 
 	vote(args) {
-		console.log('You voted for' + args);
+		if (!this.checkArgs(args, 1, 'vote')) return;
+
+		let voting_id = Number(args);
+
 		this.appendSystemMessage(
-			`Player '${this.game.player.userName}' voted for an image!`
+			`You voted for image ${voting_id}.`,
+			SYSTEM_MESSAGE_STATUS.SUCCESS
 		);
-		//this.socket.emit('vote_update', args);
+
+		this.socket.emit('vote', voting_id);
 	}
+
+	async mostVotes(args) {
+		if (!this.checkArgs(args, 0, 'mostVotes')) return;
+
+		let mostVotedImages = await new Promise((resolve, reject) => {
+			this.socket.emit('mostVotes', result => {
+				resolve(result);
+			});
+		});
+
+		if (mostVotedImages && mostVotedImages.length > 0) {
+			if (mostVotedImages.length === 1) {
+				const item = mostVotedImages[0];
+				this.appendSystemMessage(
+					`The voting has been stopped. Image ${item.title} by ${item.author} won.`,
+					SYSTEM_MESSAGE_STATUS.SUCCESS
+				);
+			} else {
+				const descriptions = mostVotedImages
+					.map(item => `"${item.title}" by ${item.author}`)
+					.join(' & ');
+				this.appendSystemMessage(
+					`The voting has been stopped. There was a tie. Images ${descriptions} won.`,
+					SYSTEM_MESSAGE_STATUS.SUCCESS
+				);
+			}
+		} else {
+			this.appendSystemMessage(
+				`No votes have been cast.`,
+				SYSTEM_MESSAGE_STATUS.INFO
+			);
+		}
+	}
+
+	//TODO das ist lokal. Sollte eine Nachricht global geben || Sollte es?
+	async votesFrom(args) {
+		if (!this.checkArgs(args, 1, 'votesFrom')) return;
+
+		let voting_id = Number(args);
+
+		let votes = await new Promise((resolve, reject) => {
+			this.socket.emit('getVotesFrom', voting_id, result => {
+				resolve(result);
+			});
+		});
+
+		if (votes != null) {
+			this.appendSystemMessage(
+				`Image ${voting_id} has ${votes} vote(s).`,
+				SYSTEM_MESSAGE_STATUS.INFO
+			);
+		} else {
+			this.appendSystemMessage(
+				`This shouldn't happen :'(`,
+				SYSTEM_MESSAGE_STATUS.ERROR
+			);
+		}
+	}
+
+	async getVotesFrom(args) {
+		let voting_id = Number(args);
+
+		let votes = await new Promise((resolve, reject) => {
+			this.socket.emit('getVotesFrom', voting_id, result => {
+				resolve(result);
+			});
+		});
+
+		return votes;
+	}
+
+	startVoting(args) {
+		if (!this.checkArgs(args, 0, 'startVoting')) return;
+
+		this.socket.emit('startVoting');
+	}
+
+	stopVoting(args) {
+		if (!this.checkArgs(args, 0, 'stopVoting')) return;
+
+		this.socket.emit('stopVoting');
+	}
+
+	checkArgs(args, numberParams, cmd) {
+		if (args.length != numberParams) {
+			this.appendSystemMessage(availableCommands[cmd], SYSTEM_MESSAGE_STATUS.INFO);
+			return false;
+		}
+		return true;
+	}
+
+	// TODO Pictures bvw. images umbenennen
 }

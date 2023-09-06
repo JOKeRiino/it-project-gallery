@@ -8,6 +8,9 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const proxy = require('express-http-proxy');
 
+let images_glob = null;
+let voteDict = {};
+
 app.use(express.static(__dirname));
 app.get('/', function (req, res) {
 	res.sendFile(__dirname + '/index.html');
@@ -37,6 +40,7 @@ app.get('/avatars', (req, res) => {
 });
 
 app.get('/scrapeImages', (req, res) => {
+	res.set('Cache-Control', 'no-store');
 	console.log('I am scraping');
 	const exists = fs.existsSync('imageData.json');
 	const last_mod = exists
@@ -61,8 +65,9 @@ app.get('/scrapeImages', (req, res) => {
 			});
 	} else {
 		console.log('file exists');
+		images_glob = JSON.parse(fs.readFileSync('imageData.json'));
 		res.header('Expires', new Date(last_mod + GRACE_PERIOD).toUTCString());
-		res.send(JSON.parse(fs.readFileSync('imageData.json')));
+		res.send(images_glob);
 	}
 });
 
@@ -142,6 +147,8 @@ async function scrapeData(url) {
 	});
 
 	console.log(images.length);
+
+	images_glob = images;
 
 	return images;
 }
@@ -311,6 +318,77 @@ io.on(
 				}
 			}
 			callback(isAvailable);
+		});
+
+		socket.on('vote', voting_id => {
+			let playerId = socket.id;
+
+			if (!voteDict[voting_id]) {
+				voteDict[voting_id] = [];
+			}
+
+			// Check if the player has already voted for this picture
+			if (voteDict[voting_id].includes(playerId)) {
+				console.log(
+					`Player ${playerId} has already voted for picture ${voting_id}`
+				);
+			} else {
+				voteDict[voting_id].push(playerId);
+				console.log(`Player ${playerId} voted for picture ${voting_id}`);
+			}
+		});
+
+		socket.on('getVotesFrom', (voting_id, callback) => {
+			let votes = voteDict[voting_id] ? voteDict[voting_id].length : 0;
+
+			callback(votes);
+		});
+
+		socket.on('mostVotes', callback => {
+			const winners = [];
+			let max_votes = 0;
+
+			for (const [picId, voters] of Object.entries(voteDict)) {
+				const votes = voters.length;
+				const index = parseInt(picId, 10); // Convert ID to index
+				const details = images_glob[index];
+
+				if (votes > max_votes) {
+					max_votes = votes;
+					winners.length = 0; // Clear the winners array
+					winners.push({ id: picId, author: details.author, title: details.title });
+				} else if (votes === max_votes) {
+					winners.push({ id: picId, author: details.author, title: details.title });
+				}
+			}
+
+			callback(winners);
+		});
+
+		socket.on('startVoting', () => {
+			voteDict = {};
+			io.emit('startVoting');
+		});
+
+		socket.on('stopVoting', () => {
+			const winners = [];
+			let max_votes = 0;
+
+			for (const [picId, voters] of Object.entries(voteDict)) {
+				const votes = voters.length;
+				const index = parseInt(picId, 10); // Convert ID to index
+				const details = images_glob[index];
+
+				if (votes > max_votes) {
+					max_votes = votes;
+					winners.length = 0; // Clear the winners array
+					winners.push({ id: picId, author: details.author, title: details.title });
+				} else if (votes === max_votes) {
+					winners.push({ id: picId, author: details.author, title: details.title });
+				}
+			}
+
+			io.emit('stopVoting', winners);
 		});
 	}
 );
