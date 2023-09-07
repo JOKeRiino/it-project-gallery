@@ -88,18 +88,18 @@ export class RemotePlayer extends Player {
 		}
 		if (position.model) {
 			this.avatar = position.model;
-			delete position.model;
 			this.game.scene.remove(this.model);
 
-			this.loader.load(`${this.avatar.model}.fbx`, model => {
+			this.loader.load(`${this.avatar}.fbx`, model => {
 				model.scale.setScalar(0.018799710619674975);
+				model.rotateY(Math.PI);
 				//model animations:
 				this.anims = new THREE.AnimationMixer(model);
 				this.availableAnimations = {};
 
 				const anim = new FBXLoader();
 				anim.setPath('./img/models/avatars/animations/');
-				anim.load(startingPosition.model + '@Idle.fbx', anim => {
+				anim.load(this.avatar + '@Idle.fbx', anim => {
 					model.animations[1] = anim.animations[0];
 
 					this.availableAnimations.WALKING = this.anims.clipAction(
@@ -112,6 +112,7 @@ export class RemotePlayer extends Player {
 					this.availableAnimations.WALKING.play();
 				});
 
+				this.game.scene.remove(this.model);
 				this.model = new THREE.Group();
 				this.model.add(model);
 				this.model.add(this.nameTag);
