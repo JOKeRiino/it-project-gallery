@@ -940,7 +940,8 @@ class GalerieApp {
 				new THREE.Vector3(x * boxWidth, boxHeight, y * boxWidth),
 				new THREE.Quaternion().setFromAxisAngle(
 					new THREE.Vector3(0, 1, 0),
-					-Math.PI / 4),
+					-Math.PI / 4
+				),
 				new THREE.Vector3(1, 3, 1)
 			);
 
@@ -1248,7 +1249,16 @@ class GalerieApp {
 			}
 		}
 		//set Player at the middle of the room!
-		this.camera.position.set((matrix.length / 2) * 5, 3.5, (matrix.length / 2) * 5);
+		this.camera.position.set(
+			(matrix.length / 2) * 5,
+			3.5,
+			(matrix.length / 2) * 5
+		);
+		this.player.startingPosition = {
+			x: (matrix.length / 2) * 5,
+			y: 3.5,
+			z: (matrix.length / 2) * 5,
+		};
 		console.log('Image Count: ' + imageCount, '/', images.length);
 		chairMesh.count = chairIndex;
 		plantMesh1.count = plantIndex;
