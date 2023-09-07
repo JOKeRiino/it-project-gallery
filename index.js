@@ -1342,8 +1342,8 @@ class GalerieApp {
 					'"' + foundElement.title + '"';
 				this.pictureLabel.element.children[1].innerText = foundElement.author;
 				const votes = await this.player.getVotesFrom(foundElement.voting_id);
-				this.pictureLabel.element.children[2].innerText = `This image currently has ${votes} vote(s)`;
-				this.pictureLabel.element.children[3].innerText = `Vote for this image by typing '/vote ${foundElement.voting_id}' in chat!`;
+				this.pictureLabel.element.children[2].innerText = `This picture currently has ${votes} vote(s)`;
+				this.pictureLabel.element.children[3].innerText = `Vote for this picture by typing '/vote ${foundElement.voting_id}' in chat!`;
 				this.pictureLabel.visible = true;
 			}
 		} else {
