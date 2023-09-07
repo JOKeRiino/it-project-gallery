@@ -85,7 +85,7 @@ export class LocalPlayer extends Player {
 
 		socket.on('startVoting', () => {
 			this.appendSystemMessage(
-				'You can now vote on images using /vote',
+				'You can now vote on pictures using /vote',
 				SYSTEM_MESSAGE_STATUS.INFO
 			);
 		});
@@ -95,7 +95,7 @@ export class LocalPlayer extends Player {
 				if (mostVotedImages.length === 1) {
 					const item = mostVotedImages[0];
 					this.appendSystemMessage(
-						`The voting has been stopped. Image "${item.title}" by ${item.author} won`,
+						`The voting has been stopped. Picture "${item.title}" by ${item.author} won`,
 						SYSTEM_MESSAGE_STATUS.SUCCESS
 					);
 				} else {
@@ -103,7 +103,7 @@ export class LocalPlayer extends Player {
 						.map(item => `"${item.title}" by ${item.author}`)
 						.join(' & ');
 					this.appendSystemMessage(
-						`The voting has been stopped. There was a tie. Images ${descriptions} won.`,
+						`The voting has been stopped. There was a tie. Pictures ${descriptions} won.`,
 						SYSTEM_MESSAGE_STATUS.SUCCESS
 					);
 				}
@@ -382,7 +382,7 @@ export class LocalPlayer extends Player {
 		let voting_id = Number(args);
 
 		this.appendSystemMessage(
-			`You voted for image ${voting_id}.`,
+			`You voted for picture ${voting_id}.`,
 			SYSTEM_MESSAGE_STATUS.SUCCESS
 		);
 
@@ -402,7 +402,7 @@ export class LocalPlayer extends Player {
 			if (mostVotedImages.length === 1) {
 				const item = mostVotedImages[0];
 				this.appendSystemMessage(
-					`Image ${item.title} by ${item.author} currently has the most votes.`,
+					`Picture ${item.title} by ${item.author} currently has the most votes.`,
 					SYSTEM_MESSAGE_STATUS.SUCCESS
 				);
 			} else {
@@ -410,7 +410,7 @@ export class LocalPlayer extends Player {
 					.map(item => `"${item.title}" by ${item.author}`)
 					.join(' & ');
 				this.appendSystemMessage(
-					`There is a tie currently between Images ${descriptions}.`,
+					`There is a tie currently between pictures ${descriptions}.`,
 					SYSTEM_MESSAGE_STATUS.SUCCESS
 				);
 			}
@@ -435,7 +435,7 @@ export class LocalPlayer extends Player {
 
 		if (votes != null) {
 			this.appendSystemMessage(
-				`Image ${voting_id} has ${votes} vote(s).`,
+				`Picture ${voting_id} has ${votes} vote(s).`,
 				SYSTEM_MESSAGE_STATUS.INFO
 			);
 		} else {
@@ -477,6 +477,4 @@ export class LocalPlayer extends Player {
 		}
 		return true;
 	}
-
-	// TODO Pictures bvw. images umbenennen
 }
