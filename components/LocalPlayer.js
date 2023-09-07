@@ -13,6 +13,7 @@ const availableCommands = {
 	stopVote: '/stopVote - Stop the voting process.',
 	votesFrom:
 		'/votesFrom [pictureID] - Display the votes from a specific picture.',
+	reset: '/reset - Teleports you to your starting position',
 	help: '/help - Display a list of available commands.',
 };
 // Almost like an enum
@@ -279,6 +280,13 @@ export class LocalPlayer extends Player {
 				}
 				break;
 
+			case 'reset':
+				try {
+					this.resetPosition(args);
+				} catch (error) {
+					this.appendSystemMessage(error.message, SYSTEM_MESSAGE_STATUS.ERROR);
+				}
+
 			case 'help':
 				const commandsString = Object.values(availableCommands).join('\n');
 				this.appendSystemMessage(
@@ -295,6 +303,12 @@ export class LocalPlayer extends Player {
 		}
 
 		return true;
+	}
+
+	resetPosition(args) {
+		if (!this.checkArgs(args, 0, 'reset')) return;
+
+		this.game.camera.position.copy(this.startingPosition);
 	}
 
 	teleportTo(args) {
@@ -408,7 +422,6 @@ export class LocalPlayer extends Player {
 		}
 	}
 
-	//TODO das ist lokal. Sollte eine Nachricht global geben || Sollte es?
 	async votesFrom(args) {
 		if (!this.checkArgs(args, 1, 'votesFrom')) return;
 
