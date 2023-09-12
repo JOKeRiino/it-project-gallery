@@ -163,6 +163,7 @@ class GalerieApp {
 		this.initializeRenderer_();
 		this.initializeSkyBoxAndLights_();
 		this.initializePointerlock();
+
 		fetch('/avatars').then(r =>
 			r.json().then(r => {
 				let sel = document.getElementById('playerModel');
@@ -206,8 +207,11 @@ class GalerieApp {
 			antialias: true,
 		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
+		this.renderer.setPixelRatio(window.devicePixelRatio);
 		document.body.appendChild(this.renderer.domElement);
 		this.renderer.shadowMap.enabled = true;
+		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
 
 		this.cssRenderer = new CSS2DRenderer({
 			element: document.getElementById('cssRenderer'),
@@ -323,9 +327,7 @@ class GalerieApp {
 
 					const WALKING = this._mixer.clipAction(fbx.animations[0]);
 					const IDLE = this._mixer.clipAction(fbx.animations[1]);
-					console.log(fbx);
 					WALKING.play();
-					//IDLE.play();
 				});
 
 				let bbox = new THREE.Box3();
@@ -557,19 +559,26 @@ class GalerieApp {
 				'sky_front.webp',
 				'sky_back.webp',
 			]);
+
+		this.scene.fog = new THREE.FogExp2( 0x101010, 0.015 );
 		//LIGHTS
-		let hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.8);
+		let hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
 		hemiLight.position.set(0, 300, 0);
 		this.scene.add(hemiLight);
-		var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-		dirLight.position.set(75, 300, -75);
-		this.scene.add(dirLight);
 
-		//coll teststuff
-		// this.raycasterz1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, 1 ), 0, 3 );
-		// this.raycasterz2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 3 );
-		// this.raycasterx1 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 1, 0, 0 ), 0, 3 );
-		// this.raycasterx2 = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( -1, 0, 0 ), 0, 3 );
+		this.ShadowLight = new THREE.DirectionalLight(0xffffff, 1);
+		this.ShadowLight.position.set(10, 60, 10);
+		this.ShadowLight.castShadow = true;
+		// debug shadows
+		//this.ShadowLight.shadow.camera.visible = true;
+		this.ShadowLight.shadow.mapSize.width = 1024;
+		this.ShadowLight.shadow.mapSize.height = 1024;
+		this.ShadowLight.shadow.camera.left = this.ShadowLight.shadow.camera.bottom = -500
+		this.ShadowLight.shadow.camera.right = this.ShadowLight.shadow.camera.top = 500
+		this.ShadowLight.shadow.bias = -0.001;
+		//this.scene.add(new THREE.CameraHelper(this.ShadowLight.shadow.camera));
+		this.ShadowLight.target.position.set(37, 0.2, 37);
+		this.scene.add(this.ShadowLight, this.ShadowLight.target);
 	}
 
 	/**
@@ -600,7 +609,7 @@ class GalerieApp {
 			console.error(e);
 		}
 
-		console.log(this.roomTiles);
+		//console.log(this.roomTiles);
 
 		this.roomTiles.forEach(r => {
 			if (r.name === 'plaque') console.debug(r);
@@ -647,8 +656,10 @@ class GalerieApp {
 		const floorTexture = await this.textureLoader.loadAsync(
 			'/img/materials/carpet2.jpg'
 		);
-		const floorMaterial = new THREE.MeshBasicMaterial({
+		const floorMaterial = new THREE.MeshLambertMaterial({
 			map: floorTexture,
+			side: THREE.FrontSide,
+			shadowSide: THREE.FrontSide,
 		});
 		//Ceiling Texture + Mat
 		const ceilingTexture = await this.textureLoader.loadAsync(
@@ -658,6 +669,7 @@ class GalerieApp {
 			map: ceilingTexture,
 		});
 
+		//TODO Wat to do here?
 		//CeilingWindow Texture + Mat
 		const ceilingWindowTexture = await this.textureLoader.loadAsync(
 			'img/materials/ceilingWindow2.png'
@@ -749,7 +761,7 @@ class GalerieApp {
 		);
 		ceilingMesh.layers.enable(1);
 		ceilingMesh.name = 'ceiling';
-		ceilingMesh.receiveShadow = true;
+		ceilingMesh.castShadow = true;
 		this.roomTiles.push(ceilingMesh);
 		let ceilingIndex = 0;
 		const placeCeiling = (x, y) => {
@@ -781,7 +793,6 @@ class GalerieApp {
 		);
 		ceilingWindowMesh.layers.enable(1);
 		ceilingWindowMesh.name = 'ceiling';
-		ceilingWindowMesh.receiveShadow = true;
 		this.roomTiles.push(ceilingWindowMesh);
 		let ceilingWindowIndex = 0;
 		const placeCeilingWindow = (x, y) => {
@@ -874,6 +885,7 @@ class GalerieApp {
 		);
 		galleryWallMesh.layers.enable(1);
 		galleryWallMesh.name = 'galleryWall';
+		galleryWallMesh.castShadow = true;
 		this.roomTiles.push(galleryWallMesh);
 		let galleryWallIndex = 0;
 		const placePillar = (x, y) => {
@@ -904,6 +916,8 @@ class GalerieApp {
 		);
 		chairMesh.layers.enable(1);
 		chairMesh.name = 'chair';
+		//chairMesh.receiveShadow = true;
+		chairMesh.castShadow = true;
 
 		const placeChair = (x, y, edgeType) => {
 			let mat = new THREE.Matrix4();
@@ -973,6 +987,10 @@ class GalerieApp {
 		plantMesh2.layers.enable(1);
 		plantMesh1.name = 'plant_1';
 		plantMesh2.name = 'plant_2';
+		plantMesh1.castShadow = true;
+		plantMesh2.castShadow = true;
+		plantMesh1.receiveShadow = true;
+		plantMesh2.receiveShadow = true;
 
 		const placePlant = (x, y) => {
 			let mat = new THREE.Matrix4();
@@ -1007,6 +1025,7 @@ class GalerieApp {
 		const wallGeometryBoundingMesh = new THREE.Mesh(wallGeometry, wallMaterial);
 		wallMesh.layers.enable(1);
 		wallMesh.name = 'outerWall';
+		wallMesh.castShadow = true;
 		this.roomTiles.push(wallMesh);
 		let outerWallIndex = 0;
 		/**@param{'t'|'b'|'l'|'r'} wallPos */
@@ -1169,7 +1188,7 @@ class GalerieApp {
 						canvasMesh.position.set(
 							0,
 							wallMesh.geometry.parameters.height * 0.42,
-							0 - boxWidth / 2 + 0.205
+							0 - boxWidth / 2 + 0.105
 						);
 						canvasMesh.layers.enable(2);
 						canvasMesh.name = images[imageCount].title;
@@ -1259,7 +1278,7 @@ class GalerieApp {
 			y: 3.5,
 			z: (matrix.length / 2) * 5,
 		};
-		console.log('Image Count: ' + imageCount, '/', images.length);
+		//console.log('Image Count: ' + imageCount, '/', images.length);
 		chairMesh.count = chairIndex;
 		plantMesh1.count = plantIndex;
 		plantMesh2.count = plantIndex;
@@ -1287,7 +1306,7 @@ class GalerieApp {
 			if (!serverPlayersIds.includes(playerId)) {
 				game.localPlayers[playerId].deletePlayer();
 				delete game.localPlayers[playerId];
-				console.log(`Player ${playerId} deleted from local players`);
+				//console.log(`Player ${playerId} deleted from local players`);
 			}
 		});
 
@@ -1309,18 +1328,17 @@ class GalerieApp {
 					) {
 						// Update dictionary
 						game.localPlayers[data.id].updatePosition(data);
-						console.log(`Player ${data.id} updated in local players`);
+						//console.log(`Player ${data.id} updated in local players`);
 					}
 				} else {
 					// If it's a new player
-					console.log(data);
 					game.localPlayers[data.id] = new RemotePlayer(
 						game,
 						Object.assign({}, data)
 					);
 					delete data.model;
 					delete data.name;
-					console.log(`Player ${data.id} added to local players`);
+					//console.log(`Player ${data.id} added to local players`);
 				}
 			}
 		);
@@ -1365,10 +1383,6 @@ class GalerieApp {
 				playerBoxSize
 			);
 
-			// console.log("Camera Position:", this.camera.position);
-			// console.log("Player Box Size:", playerBoxSize);
-			// console.log("Camera BoundingBox:", cameraBoundingBox);
-
 			let counter = 0;
 
 			if (controls.isLocked === true) {
@@ -1385,7 +1399,6 @@ class GalerieApp {
 						moveLeft = false;
 						moveRight = false;
 						counter++;
-						//console.log('collision');
 
 						// Calculate the direction to move away from the wall
 
@@ -1401,13 +1414,9 @@ class GalerieApp {
 					}
 				}
 
-				//console.log("check done: " + counter + " boundingboxes checked");
-
 				if (counter === 0) {
-					//console.log("moving");
 					velocity.x -= velocity.x * 10.0 * delta;
 					velocity.z -= velocity.z * 10.0 * delta;
-					//velocity.y -= 9.8 * 200 * delta; // 100.0 = mass
 					direction.z = Number(moveForward) - Number(moveBackward);
 					direction.x = Number(moveRight) - Number(moveLeft);
 					direction.normalize(); // this ensures consistent movements in all directions
@@ -1419,6 +1428,7 @@ class GalerieApp {
 					controls.moveForward(-velocity.z * delta);
 				}
 			}
+
 			this.renderer.render(this.scene, this.camera);
 			this.cssRenderer.render(this.scene, this.camera);
 			prevTime = time;
