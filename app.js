@@ -41,7 +41,6 @@ app.get('/avatars', (req, res) => {
 
 app.get('/scrapeImages', (req, res) => {
 	res.set('Cache-Control', 'no-store');
-	console.log('I am scraping');
 	const exists = fs.existsSync('imageData.json');
 	const last_mod = exists
 		? fs.statSync('imageData.json').mtime
