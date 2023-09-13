@@ -25,8 +25,6 @@ function getImgDimensions(img, canvasSize) {
 
 const blocker = document.getElementById('blocker');
 const instructions = document.getElementById('instructions');
-//coll teststuff
-// const objects = [];
 const cameraBoundingBox = new THREE.Box3();
 const wallBoundingBoxes = [];
 const playerBoxSize = new THREE.Vector3(2, 4, 1);
@@ -963,7 +961,8 @@ class GalerieApp {
 
 			// Bounding box for collision
 			const chairBoundingBox = new THREE.Box3().setFromObject(_origMesh);
-			chairBoundingBox.applyMatrix4(matBoundingBox); // Apply the instance's transformation matrix
+			// Apply the instance's transformation matrix
+			chairBoundingBox.applyMatrix4(matBoundingBox);
 			wallBoundingBoxes.push(chairBoundingBox);
 		};
 		this.roomTiles.push(chairMesh);
@@ -1009,7 +1008,8 @@ class GalerieApp {
 
 			// Bounding boxes for collision
 			const plantBoundingBox = new THREE.Box3().setFromObject(_origPltMesh2);
-			plantBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			// Apply the instance's transformation matrix
+			plantBoundingBox.applyMatrix4(mat);
 			wallBoundingBoxes.push(plantBoundingBox);
 		};
 		this.roomTiles.push(plantMesh1, plantMesh2);
@@ -1072,7 +1072,8 @@ class GalerieApp {
 			const wallBoundingBox = new THREE.Box3().setFromObject(
 				wallGeometryBoundingMesh
 			);
-			wallBoundingBox.applyMatrix4(mat); // Apply the instance's transformation matrix
+			// Apply the instance's transformation matrix
+			wallBoundingBox.applyMatrix4(mat);
 			wallBoundingBoxes.push(wallBoundingBox);
 		};
 
