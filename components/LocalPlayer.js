@@ -337,7 +337,6 @@ export class LocalPlayer extends Player {
 
 		this.game.camera.position.copy(targetPlayer.position);
 
-		// Doesnt work perfectly
 		this.game.camera.lookAt(
 			targetPlayer.rotation.x,
 			targetPlayer.rotation.y,
@@ -346,7 +345,10 @@ export class LocalPlayer extends Player {
 	}
 
 	whisper(args) {
-		if (!this.checkArgs(args, 2, 'whisper')) return;
+		if (args.length < 2) {
+			this.appendSystemMessage(availableCommands[cmd], SYSTEM_MESSAGE_STATUS.INFO);
+			return;
+		}
 
 		const [target, ...messageParts] = args;
 		const message = messageParts.join(' ');
