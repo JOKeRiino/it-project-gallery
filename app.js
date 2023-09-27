@@ -7,6 +7,7 @@ const fs = require('fs');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const proxy = require('express-http-proxy');
+const onHeaders = require('on-headers')
 
 let images_glob = null;
 let voteDict = {};
@@ -40,14 +41,12 @@ app.get('/avatars', (req, res) => {
 });
 
 app.get('/scrapeImages', (req, res) => {
-	res.set('Cache-Control', 'no-store');
+	onHeaders(res, ()=>{res.removeHeader('ETag')})
 	const exists = fs.existsSync('imageData.json');
 	const last_mod = exists
 		? fs.statSync('imageData.json').mtime
 		: new Date(Date.UTC(1970, 0, 1, 0, 0, 0, 0));
 	const GRACE_PERIOD = 24 * 60 * 60 * 1000; // 1 day
-
-	// client-side caching of response the same time the server caches the results.
 
 	// rescrape if data file not recently modified, something may have changed
 	if (!exists || Date.now() - last_mod > GRACE_PERIOD) {
@@ -55,6 +54,7 @@ app.get('/scrapeImages', (req, res) => {
 		getLatestImagesUrl()
 			.then(images => {
 				res
+					// client-side caching of response the same time the server caches the results.
 					.header('Expires', new Date(Date.now() + GRACE_PERIOD).toUTCString())
 					.send(JSON.stringify(images));
 			})
@@ -65,7 +65,7 @@ app.get('/scrapeImages', (req, res) => {
 	} else {
 		console.log('file exists');
 		images_glob = JSON.parse(fs.readFileSync('imageData.json'));
-		res.header('Expires', new Date(last_mod + GRACE_PERIOD).toUTCString());
+		res.header('Expires', new Date(last_mod.valueOf() + GRACE_PERIOD).toUTCString());
 		res.send(images_glob);
 	}
 });

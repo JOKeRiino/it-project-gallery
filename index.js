@@ -210,7 +210,6 @@ class GalerieApp {
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-
 		this.cssRenderer = new CSS2DRenderer({
 			element: document.getElementById('cssRenderer'),
 		});
@@ -404,7 +403,7 @@ class GalerieApp {
 					playerNameInput.style.borderColor = '';
 				} else {
 					const errorMessage =
-						'*Dieser Nutzername ist bereits vergeben. Bitte wählen Sie einen anderen.';
+						'*This username is already occupied. Please choose a different one.';
 					playerNameError.textContent = errorMessage;
 					playerNameError.style.display = 'block';
 					playerNameInput.style.borderColor = 'red';
