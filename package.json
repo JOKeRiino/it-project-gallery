@@ -30,6 +30,7 @@
 		"express-http-proxy": "^1.6.3",
 		"node-fetch": "^3.3.1",
 		"nodemon": "^2.0.22",
+		"on-headers": "^1.0.2",
 		"socket.io": "^4.6.1",
 		"socket.io-client": "^4.6.1",
 		"three": "^0.151.3"
